@@ -115,7 +115,7 @@ const PropertiesPage = () => {
     parseAsString.withDefault(""),
   );
   const [searchQuery, setSearchQuery] = useQueryState(
-    "q",
+    "search",
     parseAsString.withDefault(""),
   );
   const [selectedCategories, setSelectedCategories] = useQueryState(

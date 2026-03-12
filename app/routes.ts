@@ -22,6 +22,8 @@ export default [
   // =====================
   route("/login", "routes/auth/login-page.tsx"),
   route("/register", "routes/auth/register-page.tsx"),
+  route("/forgot-password", "routes/auth/forgot-password-page.tsx"),
+  route("/reset-password", "routes/auth/reset-password-page.tsx"),
 
   // =====================
   // 404

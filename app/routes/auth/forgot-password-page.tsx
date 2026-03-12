@@ -3,7 +3,14 @@ import { Link, useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Loader2, ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import {
+  Calendar,
+  Loader2,
+  ArrowLeft,
+  Mail,
+  CheckCircle,
+  Home,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -69,10 +76,10 @@ export default function ForgotPasswordPage() {
               className="flex items-center gap-2 mb-8 justify-center"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Calendar className="h-6 w-6 text-primary-foreground" />
+                <Home className="h-6 w-6 text-primary-foreground" />
               </div>
               <span className="text-2xl font-bold text-foreground">
-                Eventku
+                Rentivo
               </span>
             </Link>
 
@@ -150,9 +157,9 @@ export default function ForgotPasswordPage() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+              <Home className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">Eventku</span>
+            <span className="text-2xl font-bold text-foreground">Rentivo</span>
           </Link>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -209,7 +216,7 @@ export default function ForgotPasswordPage() {
       {/* Right Side - Image */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1557683316-973673baf926?w=1000&h=1200&fit=crop"
+          src="https://media.vrbo.com/lodging/96000000/95520000/95511900/95511892/54c07ab7.jpg?impolicy=resizecrop&ra=fill&rh=575&rw=575"
           alt="Security"
           className="absolute inset-0 w-full h-full object-cover"
         />
