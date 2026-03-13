@@ -37,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 import { useScrollPosition } from "~/hooks/use-scroll-position";
 import { useAuthStore } from "~/modules/auth/auth.store";
+import { mockProperties } from "~/data/mock-properties";
 
 // ─── DATA ───────────────────────────────────────────────
 const propertyTypes = [
@@ -47,16 +48,14 @@ const propertyTypes = [
   { label: "Guesthouse", value: "guesthouse", icon: Tent },
 ];
 
-const destinations = [
-  { label: "Bali", value: "bali", emoji: "🏝️" },
-  { label: "Jakarta", value: "jakarta", emoji: "🏙️" },
-  { label: "Bandung", value: "bandung", emoji: "🌄" },
-  { label: "Yogyakarta", value: "yogyakarta", emoji: "🏛️" },
-  { label: "Surabaya", value: "surabaya", emoji: "🌊" },
-  { label: "Lombok", value: "lombok", emoji: "🏖️" },
-  { label: "Malang", value: "malang", emoji: "🌿" },
-  { label: "Semarang", value: "semarang", emoji: "🏯" },
-];
+const uniqueCities = Array.from(
+  new Set(mockProperties.map((p) => p.city)),
+).sort();
+
+const destinations = uniqueCities.map((city) => ({
+  label: city,
+  value: city.toLowerCase(),
+}));
 
 // ─── HELPERS ────────────────────────────────────────────
 function getUserInitials(name?: string | null): string {
@@ -85,12 +84,19 @@ export function Navbar() {
   const isHome = location.pathname === "/";
   const isSolid = isScrolled || !isHome;
 
-  // Filter destinations based on search
-  const filteredDestinations = useMemo(() => {
-    if (!destSearch.trim()) return destinations;
-    return destinations.filter((d) =>
-      d.label.toLowerCase().includes(destSearch.toLowerCase()),
-    );
+  // Filter destinations based on search with a cap for scalability
+  const searchResult = useMemo(() => {
+    const search = destSearch.trim().toLowerCase();
+    const filtered = search
+      ? destinations.filter((d) => d.label.toLowerCase().includes(search))
+      : destinations;
+
+    // Best practice: cap the results so the DOM doesn't get overloaded when city list grows to hundreds
+    return {
+      items: filtered.slice(0, 8),
+      total: filtered.length,
+      hasMore: filtered.length > 8,
+    };
   }, [destSearch]);
 
   // Shared text color class
@@ -206,25 +212,29 @@ export function Navbar() {
                     />
                   </div>
                 </div>
-                {/* City list */}
-                <div className="p-1.5 max-h-[240px] overflow-y-auto">
-                  {filteredDestinations.length > 0 ? (
-                    filteredDestinations.map((dest) => (
-                      <button
-                        key={dest.value}
-                        onClick={() => {
-                          navigate(`/properties?city=${dest.value}`);
-                          setDestOpen(false);
-                          setDestSearch("");
-                        }}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted cursor-pointer"
-                      >
-                        <span className="text-lg leading-none">
-                          {dest.emoji}
-                        </span>
-                        <span className="font-medium">{dest.label}</span>
-                      </button>
-                    ))
+                <div className="p-1.5 max-h-[300px] overflow-y-auto">
+                  {searchResult.items.length > 0 ? (
+                    <>
+                      {searchResult.items.map((dest) => (
+                        <button
+                          key={dest.value}
+                          onClick={() => {
+                            navigate(`/properties?city=${dest.value}`);
+                            setDestOpen(false);
+                            setDestSearch("");
+                          }}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted cursor-pointer"
+                        >
+                          <span className="font-medium px-1">{dest.label}</span>
+                        </button>
+                      ))}
+                      {searchResult.hasMore && (
+                        <div className="px-3 pt-3 pb-2 mt-1 text-center text-xs font-medium text-muted-foreground border-t border-border">
+                          {searchResult.total - 8} more cities available. Type
+                          to search.
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                       No cities found
@@ -476,17 +486,23 @@ export function Navbar() {
                 )}
               >
                 <div className="ml-6 mt-1 flex flex-col gap-0.5 border-l-2 border-border pl-4 pb-1">
-                  {destinations.map((dest) => (
+                  {/* Reuse the capped searchResult for mobile to keep DOM light */}
+                  {searchResult.items.map((dest) => (
                     <Link
                       key={dest.value}
                       to={`/properties?city=${dest.value}`}
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
                     >
-                      <span className="text-base">{dest.emoji}</span>
                       {dest.label}
                     </Link>
                   ))}
+                  {searchResult.hasMore && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground italic">
+                      + {searchResult.total - 8} more cities. View on desktop to
+                      search.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

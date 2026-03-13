@@ -14,9 +14,11 @@ export default [
     index("routes/home.tsx"),
 
     route("/properties", "routes/properties.tsx"),
-    route("/properties/:id", "routes/property-detail.tsx"),
+    route("/properties/:slug", "routes/property-detail.tsx"),
 
     route("/about", "routes/about.tsx"),
+    route("/terms", "routes/terms.tsx"),
+    route("/privacy", "routes/privacy.tsx"),
   ]),
 
   // =====================

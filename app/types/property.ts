@@ -8,6 +8,7 @@ export interface Property {
   tenantId: string;
   categoryId: string;
   name: string;
+  slug: string;
   description: string;
   address: string;
   city: string;

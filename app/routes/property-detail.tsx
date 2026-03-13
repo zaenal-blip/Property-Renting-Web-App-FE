@@ -34,10 +34,10 @@ const amenityIcons: Record<string, React.ElementType> = {
 };
 
 const PropertyDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const setBooking = useBookingStore((s) => s.setBooking);
-  const property = mockProperties.find((p) => p.id === id);
+  const property = mockProperties.find((p) => p.slug === slug);
 
   if (!property) {
     return (

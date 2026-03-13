@@ -14,7 +14,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
   return (
     <Link
-      to={`/properties/${property.id}`}
+      to={`/properties/${property.slug}`}
       className="group block overflow-hidden rounded-2xl border border-border bg-card card-hover"
     >
       <div className="relative aspect-4/3 overflow-hidden">
