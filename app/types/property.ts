@@ -68,13 +68,64 @@ export interface PeakSeasonRate {
   value: number;
 }
 
+export type PropertySortBy = "price_asc" | "price_desc" | "rating";
+
 export interface PropertyFilters {
   destination?: string;
   checkIn?: string;
   checkOut?: string;
   guests?: number;
-  category?: string[]; // IDs
-  sort?: "price_asc" | "price_desc" | "rating";
+  category?: string[];
+  sort?: PropertySortBy;
   page?: number;
   pageSize?: number;
 }
+
+/** Resolved filter values returned by `usePropertyFilters` */
+export interface PropertyFilterState {
+  // URL-synced values
+  destination: string;
+  searchQuery: string;
+  selectedCategories: string[];
+  sortBy: string;
+  minPrice: number | null;
+  maxPrice: number | null;
+  minRating: number | null;
+  page: number;
+
+  // Local (debounced) input state
+  localSearchName: string;
+  localLocation: string;
+  localMinPrice: number | "";
+  localMaxPrice: number | "";
+
+  // Setters
+  setLocalSearchName: (v: string) => void;
+  setLocalLocation: (v: string) => void;
+  setLocalMinPrice: (v: number | "") => void;
+  setLocalMaxPrice: (v: number | "") => void;
+  setMinRating: (v: number | null) => void;
+  setSortBy: (v: string) => void;
+  setPage: (v: number) => void;
+  toggleCategory: (cat: string) => void;
+  resetFilters: () => void;
+}
+
+// ── Constants ──
+
+export const ITEMS_PER_PAGE = 6;
+
+export const PROPERTY_CATEGORIES: { value: string; label: string }[] = [
+  { value: "hotel", label: "Hotel" },
+  { value: "villa", label: "Villa" },
+  { value: "resort", label: "Resort" },
+  { value: "apartment", label: "Apartment" },
+  { value: "guesthouse", label: "Guesthouse" },
+];
+
+export const RATING_OPTIONS: { value: string; label: string }[] = [
+  { value: "0", label: "Any Rating" },
+  { value: "3", label: "3+ Stars" },
+  { value: "4", label: "4+ Stars" },
+  { value: "4.5", label: "4.5+ Stars" },
+];
