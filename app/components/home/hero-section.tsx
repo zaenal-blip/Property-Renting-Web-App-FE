@@ -12,7 +12,7 @@ export function HeroSection() {
       />
       <div className="hero-gradient absolute inset-0" />
 
-      <div className="container relative z-10 mx-auto py-20 md:py-40">
+      <div className="container relative z-10 mx-auto px-4 py-20 md:py-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

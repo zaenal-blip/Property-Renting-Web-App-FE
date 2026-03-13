@@ -1,35 +1,71 @@
-export interface Property {
+export interface PropertyCategory {
   id: string;
   name: string;
-  city: string;
-  address: string;
+}
+
+export interface Property {
+  id: string;
+  tenantId: string;
+  categoryId: string;
+  name: string;
   description: string;
+  address: string;
+  city: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  createdAt: string;
+  updatedAt: string;
+
+  // Derived/Aggregated for UI
   category: PropertyCategory;
   rating: number;
   reviewCount: number;
-  images: string[];
-  lowestPrice: number;
-  isAvailable: boolean;
-  amenities: string[];
+  images: PropertyImage[];
   rooms: Room[];
+  isAvailable: boolean;
+  lowestPrice: number;
+  amenities: string[];
 }
 
-export type PropertyCategory =
-  | "hotel"
-  | "villa"
-  | "resort"
-  | "apartment"
-  | "guesthouse";
+export interface PropertyImage {
+  id: string;
+  propertyId: string;
+  imageUrl: string;
+}
 
 export interface Room {
   id: string;
   propertyId: string;
   name: string;
   description: string;
-  price: number;
   capacity: number;
-  images: string[];
+  basePrice: number;
+  createdAt: string;
+  images: RoomImage[];
+  availability: RoomAvailability[];
+  peakSeasonRates: PeakSeasonRate[];
+}
+
+export interface RoomImage {
+  id: string;
+  roomId: string;
+  imageUrl: string;
+}
+
+export interface RoomAvailability {
+  id: string;
+  roomId: string;
+  date: string;
   isAvailable: boolean;
+}
+
+export interface PeakSeasonRate {
+  id: string;
+  roomId: string;
+  startDate: string;
+  endDate: string;
+  priceType: "NOMINAL" | "PERCENTAGE";
+  value: number;
 }
 
 export interface PropertyFilters {
@@ -37,7 +73,7 @@ export interface PropertyFilters {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
-  category?: PropertyCategory[];
+  category?: string[]; // IDs
   sort?: "price_asc" | "price_desc" | "rating";
   page?: number;
   pageSize?: number;

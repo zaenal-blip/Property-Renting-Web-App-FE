@@ -21,10 +21,18 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet";
 import { PropertyCard } from "~/components/shared/property-card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "~/components/ui/pagination";
 import type { PropertyCategory } from "~/types/property";
 import { mockProperties } from "~/data/mock-properties";
 
-const categories: { value: PropertyCategory; label: string }[] = [
+const categories: { value: string; label: string }[] = [
   { value: "hotel", label: "Hotel" },
   { value: "villa", label: "Villa" },
   { value: "resort", label: "Resort" },
@@ -43,8 +51,8 @@ function FilterContent({
 }: {
   searchName: string;
   setSearchName: (v: string) => void;
-  selectedCategories: PropertyCategory[];
-  toggleCategory: (c: PropertyCategory) => void;
+  selectedCategories: string[];
+  toggleCategory: (c: string) => void;
   sortBy: string;
   setSortBy: (v: string) => void;
   onReset: () => void;
@@ -114,6 +122,14 @@ const PropertiesPage = () => {
     "destination",
     parseAsString.withDefault(""),
   );
+  const [checkinDate] = useQueryState(
+    "checkinDate",
+    parseAsString.withDefault(""),
+  );
+  const [checkoutDate] = useQueryState(
+    "checkoutDate",
+    parseAsString.withDefault(""),
+  );
   const [searchQuery, setSearchQuery] = useQueryState(
     "search",
     parseAsString.withDefault(""),
@@ -171,7 +187,9 @@ const PropertiesPage = () => {
       );
     }
     if (selectedCategories.length > 0) {
-      result = result.filter((p) => selectedCategories.includes(p.category));
+      result = result.filter((p) =>
+        selectedCategories.includes(p.category.name),
+      );
     }
 
     if (sortBy === "price_asc")
@@ -207,14 +225,14 @@ const PropertiesPage = () => {
       <div className="flex gap-8">
         {/* Desktop Sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-36 rounded-2xl border border-border bg-card p-5">
+          <div className="sticky top-32 rounded-2xl border border-border bg-card p-5">
             <h2 className="mb-4 text-base font-semibold text-card-foreground">
               Filters
             </h2>
             <FilterContent
               searchName={localSearchName}
               setSearchName={setLocalSearchName}
-              selectedCategories={selectedCategories as PropertyCategory[]}
+              selectedCategories={selectedCategories}
               toggleCategory={toggleCategory}
               sortBy={sortBy}
               setSortBy={setSortBy}
@@ -241,13 +259,11 @@ const PropertiesPage = () => {
                 <SheetHeader>
                   <SheetTitle>Filters</SheetTitle>
                 </SheetHeader>
-                <div className="py-4">
+                <div className="px-4 py-4 pb-6">
                   <FilterContent
                     searchName={localSearchName}
                     setSearchName={setLocalSearchName}
-                    selectedCategories={
-                      selectedCategories as PropertyCategory[]
-                    }
+                    selectedCategories={selectedCategories}
                     toggleCategory={toggleCategory}
                     sortBy={sortBy}
                     setSortBy={setSortBy}
@@ -259,37 +275,10 @@ const PropertiesPage = () => {
           </div>
 
           {paginatedProperties.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {paginatedProperties.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
-                ))}
-              </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    disabled={page <= 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm font-medium">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
+            <div className="h-full grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
+              {paginatedProperties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -312,6 +301,72 @@ const PropertiesPage = () => {
           )}
         </div>
       </div>
+
+      {/* Pagination Controls (moved outside the flex container to let the sidebar stick correctly) */}
+      {paginatedProperties.length > 0 && totalPages > 1 && (
+        <div className="mt-8 pt-6 border-t border-border/90 lg:pl-72">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (page > 1) {
+                      setPage(page - 1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className={
+                    page <= 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Simple page number rendering
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === pageNum}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(pageNum);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (page < totalPages) {
+                      setPage(page + 1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className={
+                    page >= totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 };

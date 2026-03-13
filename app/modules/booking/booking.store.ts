@@ -3,8 +3,8 @@ import type { Room } from "~/types/property";
 
 interface BookingState {
   selectedRoom: Room | null;
-  checkIn: string;
-  checkOut: string;
+  checkinDate: string;
+  checkoutDate: string;
   guests: number;
   total: number;
   setBooking: (params: Partial<BookingState>) => void;
@@ -13,8 +13,8 @@ interface BookingState {
 
 const initialState = {
   selectedRoom: null,
-  checkIn: "",
-  checkOut: "",
+  checkinDate: "",
+  checkoutDate: "",
   guests: 1,
   total: 0,
 };

@@ -15,7 +15,6 @@ export const authService = {
       email: payload.email,
       password: payload.password,
       role: payload.role,
-      referralCode: payload.referralCode,
     });
     return data;
   },

@@ -19,7 +19,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
     >
       <div className="relative aspect-4/3 overflow-hidden">
         <img
-          src={property.images[0]}
+          src={property.images[0]?.imageUrl}
           alt={property.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
@@ -74,7 +74,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
             <span className="text-xs text-muted-foreground">/malam</span>
           </div>
           <Badge variant="outline" className="text-xs capitalize">
-            {property.category}
+            {property.category.name}
           </Badge>
         </div>
       </div>

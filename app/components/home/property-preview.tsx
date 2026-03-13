@@ -9,7 +9,7 @@ export function PropertyPreview() {
   const featured = mockProperties.slice(0, 6);
 
   return (
-    <section className="container mx-auto py-12 md:py-16">
+    <section className="container mx-auto py-12 px-4 md:py-16">
       <div className="mb-8 flex items-end justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground md:text-3xl">

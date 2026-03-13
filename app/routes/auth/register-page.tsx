@@ -33,8 +33,7 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "CUSTOMER",
-      referralCode: "",
+      role: "USER",
     },
   });
 
@@ -44,7 +43,7 @@ export default function RegisterPage() {
     mutationFn: (data: RegisterSchema) => authService.register(data),
     onSuccess: () => {
       toast.success("Account created successfully!");
-      navigate("/login"); // ⬅️ redirect ke login
+      navigate("/login");
     },
     onError: (error: any) => {
       toast.error(
@@ -108,23 +107,19 @@ export default function RegisterPage() {
               <RadioGroup
                 value={selectedRole}
                 onValueChange={(value) =>
-                  setValue("role", value as "CUSTOMER" | "ORGANIZER")
+                  setValue("role", value as "USER" | "TENANT")
                 }
                 className="grid grid-cols-2 gap-4"
               >
                 <Label
-                  htmlFor="CUSTOMER"
+                  htmlFor="USER"
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedRole === "CUSTOMER"
+                    selectedRole === "USER"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <RadioGroupItem
-                    value="CUSTOMER"
-                    id="CUSTOMER"
-                    className="sr-only"
-                  />
+                  <RadioGroupItem value="USER" id="USER" className="sr-only" />
                   <span className="text-2xl mb-2">🛏️</span>
                   <span className="font-medium">Book Stays</span>
                   <span className="text-xs text-center text-muted-foreground">
@@ -132,16 +127,16 @@ export default function RegisterPage() {
                   </span>
                 </Label>
                 <Label
-                  htmlFor="ORGANIZER"
+                  htmlFor="TENANT"
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedRole === "ORGANIZER"
+                    selectedRole === "TENANT"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
                   <RadioGroupItem
-                    value="ORGANIZER"
-                    id="ORGANIZER"
+                    value="TENANT"
+                    id="TENANT"
                     className="sr-only"
                   />
                   <span className="text-2xl mb-2">🏢</span>
@@ -228,21 +223,6 @@ export default function RegisterPage() {
                 </p>
               )}
             </div>
-
-            {selectedRole === "CUSTOMER" && (
-              <div>
-                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
-                <Input
-                  id="referralCode"
-                  placeholder="Enter referral code"
-                  className="mt-1.5 input-focus"
-                  {...register("referralCode")}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get 10,000 points when you sign up with a referral code!
-                </p>
-              </div>
-            )}
 
             <Button
               type="submit"

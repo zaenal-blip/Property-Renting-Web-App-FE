@@ -32,15 +32,16 @@ export function SearchForm() {
   const handleSearch = () => {
     setSearch({
       destination: localDest,
-      checkIn: dateRange.from?.toISOString() || "",
-      checkOut: dateRange.to?.toISOString() || "",
+      checkinDate: dateRange.from?.toISOString() || "",
+      checkoutDate: dateRange.to?.toISOString() || "",
       guests: localGuests,
     });
     const params = new URLSearchParams();
     if (localDest) params.set("destination", localDest);
-    if (dateRange.from) params.set("checkIn", dateRange.from.toISOString());
-    if (dateRange.to) params.set("checkOut", dateRange.to.toISOString());
+    if (dateRange.from) params.set("checkinDate", dateRange.from.toISOString());
+    if (dateRange.to) params.set("checkoutDate", dateRange.to.toISOString());
     params.set("guests", String(localGuests));
+
     navigate(`/properties?${params.toString()}`);
   };
 

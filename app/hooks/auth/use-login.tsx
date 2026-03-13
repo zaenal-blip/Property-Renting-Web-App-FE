@@ -16,11 +16,11 @@ export function useLogin() {
         id: data.id,
         name: data.name,
         email: data.email,
-        avatar: data.avatar,
+        profilePicture: data.profilePicture,
         role: data.role,
-        point: data.point,
-        referralCode: data.referralCode,
-        phone: data.phone,
+        isVerified: data.isVerified,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
       });
 
       toast.success("Welcome back!");

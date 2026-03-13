@@ -38,7 +38,7 @@ export function PromoCarousel() {
   }, [next]);
 
   return (
-    <section className="container mx-auto py-8 md:py-12">
+    <section className="container mx-auto py-8 px-4 md:py-12">
       <div className="relative overflow-hidden rounded-2xl">
         <div
           className="flex transition-transform duration-500 ease-out"

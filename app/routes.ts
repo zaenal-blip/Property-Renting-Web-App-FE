@@ -15,6 +15,8 @@ export default [
 
     route("/properties", "routes/properties.tsx"),
     route("/properties/:id", "routes/property-detail.tsx"),
+
+    route("/about", "routes/about.tsx"),
   ]),
 
   // =====================

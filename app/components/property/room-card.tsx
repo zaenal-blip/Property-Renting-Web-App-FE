@@ -14,9 +14,9 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
     <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card sm:flex-row">
       <div className="aspect-video w-full shrink-0 sm:aspect-square sm:w-48">
         <img
-          src={room.images[0]}
+          src={room.images[0]?.imageUrl}
           alt={room.name}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
       </div>
@@ -35,12 +35,14 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
         </div>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="text-lg font-bold text-primary">
-              {formatPrice(room.price)}
+            <span className="text-xl font-bold text-primary">
+              {formatPrice(room.basePrice)}
             </span>
             <span className="text-xs text-muted-foreground">/malam</span>
           </div>
-          {room.isAvailable ? (
+          {/* Simplified for mock: checking if any availability or defaulting to true if not specified */}
+          {room.availability.length === 0 ||
+          room.availability.some((a) => a.isAvailable) ? (
             <Button variant="cta" size="sm" onClick={() => onBook(room)}>
               Book Now
             </Button>

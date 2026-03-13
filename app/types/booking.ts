@@ -1,20 +1,53 @@
-export type OrderStatus =
-  | "Menunggu Pembayaran"
-  | "Menunggu Konfirmasi"
-  | "Diproses"
-  | "Dibatalkan"
-  | "Selesai";
+export type ReservationStatus =
+  | "WAITING_PAYMENT"
+  | "WAITING_CONFIRMATION"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED";
 
-export interface Booking {
+export interface Reservation {
   id: string;
-  propertyId: string;
-  roomId: string;
   userId: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  propertyId: string;
+  checkinDate: string;
+  checkoutDate: string;
   totalPrice: number;
-  status: OrderStatus;
-  paymentProof?: string;
+  status: ReservationStatus;
   createdAt: string;
+  // Included relations/aggregates for UI
+  payment?: Payment;
+}
+
+export interface Payment {
+  id: string;
+  reservationId: string;
+  paymentMethod: "MANUAL_TRANSFER" | "PAYMENT_GATEWAY";
+  paymentProof?: string;
+  paymentStatus: "PENDING" | "CONFIRMED" | "REJECTED";
+  paidAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Helpers for ReservationStatus (moved from index.ts)
+export function getReservationStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    WAITING_PAYMENT: "Waiting for Payment",
+    WAITING_CONFIRMATION: "Waiting for Confirmation",
+    CONFIRMED: "Confirmed",
+    CANCELLED: "Cancelled",
+    COMPLETED: "Completed",
+  };
+  return labels[status] || status;
+}
+
+export function getReservationStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    WAITING_PAYMENT: "warning",
+    WAITING_CONFIRMATION: "info",
+    CONFIRMED: "success",
+    CANCELLED: "destructive",
+    COMPLETED: "muted",
+  };
+  return colors[status] || "info";
 }
