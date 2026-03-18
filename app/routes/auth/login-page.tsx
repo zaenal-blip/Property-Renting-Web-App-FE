@@ -3,16 +3,14 @@ import { Link, useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Home, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Checkbox } from "~/components/ui/checkbox";
-import { toast } from "sonner";
 import { loginSchema, type LoginSchema } from "~/modules/auth/auth.schema";
-import { useMutation } from "@tanstack/react-query";
-import { authService } from "~/modules/auth/auth.service";
 import { useAuthStore } from "~/modules/auth/auth.store";
+import { useLogin } from "~/hooks/auth/use-login";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -32,31 +30,7 @@ export default function LoginPage() {
     },
   });
 
-  const { mutate: login, isPending } = useMutation({
-    mutationFn: async (data: LoginSchema) => {
-      return await authService.login(data);
-    },
-    onSuccess: (data) => {
-      // Token is now stored in httpOnly cookie by backend
-      setUser({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        avatar: data.avatar,
-        role: data.role,
-        point: data.point,
-        referralCode: data.referralCode,
-        phone: data.phone,
-      });
-      toast.success("Welcome back!");
-      navigate("/");
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Login failed. Please try again.",
-      );
-    },
-  });
+  const { mutate: login, isPending } = useLogin();
 
   const onSubmit = (data: LoginSchema) => {
     login(data);
@@ -74,9 +48,9 @@ export default function LoginPage() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+              <Home className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">Eventku</span>
+            <span className="text-2xl font-bold text-foreground">Rentivo</span>
           </Link>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -191,7 +165,7 @@ export default function LoginPage() {
       {/* Right Side - Image */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1000&h=1200&fit=crop"
+          src="https://assets.hiltonstatic.com/hilton-asset-cache/image/upload/c_fill%2Cw_1920%2Ch_1080%2Cq_70%2Cf_auto%2Cg_center/g_auto/Imagery/Property%20Photography/Hilton%20International/N/NANHIHI/HERO___Family_Fun_Main_Pool_Drone_2.jpg"
           alt="Event"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -199,11 +173,12 @@ export default function LoginPage() {
         <div className="absolute bottom-0 left-0 right-0 p-12">
           <blockquote className="text-primary-foreground">
             <p className="text-2xl font-semibold mb-4">
-              "Eventku made it so easy to find and book amazing events. The
-              experience is seamless!"
+              "With Rentivo, I can easily compare accommodation prices across
+              different dates and find the best deal. Booking a stay has never
+              been this simple!"
             </p>
             <footer className="text-primary-foreground/80">
-              — Sarah Johnson, Event Enthusiast
+              — Michael Lee, Frequent Traveler
             </footer>
           </blockquote>
         </div>

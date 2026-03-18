@@ -2,19 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService } from "./auth.service";
 import type { LoginSchema, RegisterSchema } from "./auth.schema";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  avatar?: string | null | undefined;
-  role: string;
-  point: number;
-  referralCode: string;
-  phone: string;
-  pointsExpiringSoon?: number;
-  pointsExpiryDate?: string | null;
-}
+import type { User } from "~/types/user";
 
 interface AuthState {
   user: User | null;
@@ -39,20 +27,11 @@ export const useAuthStore = create<AuthState>()(
       // LOGIN
       async login(payload) {
         const data = await authService.login(payload);
+        const userData: User = data.user || data;
+
         // Token is now stored in httpOnly cookie by backend
         set({
-          user: {
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            avatar: data.avatar,
-            role: data.role,
-            point: data.point,
-            referralCode: data.referralCode,
-            phone: data.phone,
-            pointsExpiringSoon: data.pointsExpiringSoon,
-            pointsExpiryDate: data.pointsExpiryDate,
-          },
+          user: userData,
           isAuthenticated: true,
         });
       },
@@ -60,9 +39,11 @@ export const useAuthStore = create<AuthState>()(
       // REGISTER
       async register(payload) {
         const data = await authService.register(payload);
+        const userData: User = data.user || data;
+
         // Token is now stored in httpOnly cookie by backend
         set({
-          user: data.user,
+          user: userData,
           isAuthenticated: true,
         });
       },

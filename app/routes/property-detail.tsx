@@ -34,10 +34,10 @@ const amenityIcons: Record<string, React.ElementType> = {
 };
 
 const PropertyDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const setBooking = useBookingStore((s) => s.setBooking);
-  const property = mockProperties.find((p) => p.id === id);
+  const property = mockProperties.find((p) => p.slug === slug);
 
   if (!property) {
     return (
@@ -57,8 +57,9 @@ const PropertyDetail = () => {
   const handleBook = (room: Room) => {
     setBooking({ selectedRoom: room });
     toast.success("Room selected", {
-      description: `${room.name} — ${formatPrice(room.price)}/malam`,
+      description: `${room.name} — ${formatPrice(room.basePrice)}/malam`,
     });
+
     navigate(`/booking/${property.id}`);
   };
 
@@ -71,7 +72,10 @@ const PropertyDetail = () => {
         </Link>
       </Button>
 
-      <ImageGallery images={property.images} name={property.name} />
+      <ImageGallery
+        images={property.images.map((img) => img.imageUrl)}
+        name={property.name}
+      />
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
@@ -79,8 +83,9 @@ const PropertyDetail = () => {
           <div>
             <div className="flex flex-wrap items-start gap-3">
               <Badge variant="outline" className="capitalize">
-                {property.category}
+                {property.category.name}
               </Badge>
+
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-warning text-warning" />
                 <span className="text-sm font-medium">{property.rating}</span>
@@ -178,7 +183,7 @@ const PropertyDetail = () => {
               className="w-full"
               size="lg"
               onClick={() => {
-                const availableRoom = property.rooms.find((r) => r.isAvailable);
+                const availableRoom = property.rooms[0]; // Simplified for now since Room interface changed
                 if (availableRoom) handleBook(availableRoom);
               }}
               disabled={!property.isAvailable}

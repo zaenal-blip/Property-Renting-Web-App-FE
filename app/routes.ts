@@ -14,7 +14,11 @@ export default [
     index("routes/home.tsx"),
 
     route("/properties", "routes/properties.tsx"),
-    route("/properties/:id", "routes/property-detail.tsx"),
+    route("/properties/:slug", "routes/property-detail.tsx"),
+
+    route("/about", "routes/about.tsx"),
+    route("/terms", "routes/terms.tsx"),
+    route("/privacy", "routes/privacy.tsx"),
   ]),
 
   // =====================
@@ -22,6 +26,8 @@ export default [
   // =====================
   route("/login", "routes/auth/login-page.tsx"),
   route("/register", "routes/auth/register-page.tsx"),
+  route("/forgot-password", "routes/auth/forgot-password-page.tsx"),
+  route("/reset-password", "routes/auth/reset-password-page.tsx"),
 
   // =====================
   // 404

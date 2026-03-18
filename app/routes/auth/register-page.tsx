@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calendar, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Calendar, Eye, EyeOff, Home, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -33,8 +33,7 @@ export default function RegisterPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      role: "CUSTOMER",
-      referralCode: "",
+      role: "USER",
     },
   });
 
@@ -44,7 +43,7 @@ export default function RegisterPage() {
     mutationFn: (data: RegisterSchema) => authService.register(data),
     onSuccess: () => {
       toast.success("Account created successfully!");
-      navigate("/login"); // ⬅️ redirect ke login
+      navigate("/login");
     },
     onError: (error: any) => {
       toast.error(
@@ -63,17 +62,17 @@ export default function RegisterPage() {
       {/* Left Side - Image */}
       <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1000&h=1200&fit=crop"
+          src="https://marriott.cdn.tambourine.com/_blue-diamond-resorts/media/hero_9874-6939a5c4b1447.jpg"
           alt="Event"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-linear-to-t from-primary/90 to-primary/40" />
         <div className="absolute bottom-0 left-0 right-0 p-12">
           <h2 className="text-3xl font-bold text-primary-foreground mb-4">
-            Start Your Event Journey
+            Start Your Trip Journey
           </h2>
           <p className="text-lg text-primary-foreground/80">
-            Join thousands of event lovers and organizers. Create unforgettable
+            Join thousands of travelers and hosts. Create unforgettable
             experiences together.
           </p>
         </div>
@@ -89,16 +88,16 @@ export default function RegisterPage() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+              <Home className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">Eventku</span>
+            <span className="text-2xl font-bold text-foreground">Rentivo</span>
           </Link>
 
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Create an account
           </h1>
           <p className="text-muted-foreground mb-8">
-            Get started with Eventku today
+            Get started with Rentivo today
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -108,46 +107,42 @@ export default function RegisterPage() {
               <RadioGroup
                 value={selectedRole}
                 onValueChange={(value) =>
-                  setValue("role", value as "CUSTOMER" | "ORGANIZER")
+                  setValue("role", value as "USER" | "TENANT")
                 }
                 className="grid grid-cols-2 gap-4"
               >
                 <Label
-                  htmlFor="CUSTOMER"
+                  htmlFor="USER"
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedRole === "CUSTOMER"
+                    selectedRole === "USER"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <RadioGroupItem
-                    value="CUSTOMER"
-                    id="CUSTOMER"
-                    className="sr-only"
-                  />
-                  <span className="text-2xl mb-2">🎫</span>
-                  <span className="font-medium">Attend Events</span>
-                  <span className="text-xs text-muted-foreground">
-                    Find & book events
+                  <RadioGroupItem value="USER" id="USER" className="sr-only" />
+                  <span className="text-2xl mb-2">🛏️</span>
+                  <span className="font-medium">Book Stays</span>
+                  <span className="text-xs text-center text-muted-foreground">
+                    Find & rent properties
                   </span>
                 </Label>
                 <Label
-                  htmlFor="ORGANIZER"
+                  htmlFor="TENANT"
                   className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedRole === "ORGANIZER"
+                    selectedRole === "TENANT"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
                   }`}
                 >
                   <RadioGroupItem
-                    value="ORGANIZER"
-                    id="ORGANIZER"
+                    value="TENANT"
+                    id="TENANT"
                     className="sr-only"
                   />
-                  <span className="text-2xl mb-2">🎪</span>
-                  <span className="font-medium">Organize Events</span>
-                  <span className="text-xs text-muted-foreground">
-                    Create & manage events
+                  <span className="text-2xl mb-2">🏢</span>
+                  <span className="font-medium">Host Stays</span>
+                  <span className="text-xs text-center text-muted-foreground">
+                    List & manage properties
                   </span>
                 </Label>
               </RadioGroup>
@@ -228,21 +223,6 @@ export default function RegisterPage() {
                 </p>
               )}
             </div>
-
-            {selectedRole === "CUSTOMER" && (
-              <div>
-                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
-                <Input
-                  id="referralCode"
-                  placeholder="Enter referral code"
-                  className="mt-1.5 input-focus"
-                  {...register("referralCode")}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get 10,000 points when you sign up with a referral code!
-                </p>
-              </div>
-            )}
 
             <Button
               type="submit"

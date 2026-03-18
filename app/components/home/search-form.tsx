@@ -32,15 +32,16 @@ export function SearchForm() {
   const handleSearch = () => {
     setSearch({
       destination: localDest,
-      checkIn: dateRange.from?.toISOString() || "",
-      checkOut: dateRange.to?.toISOString() || "",
+      checkinDate: dateRange.from?.toISOString() || "",
+      checkoutDate: dateRange.to?.toISOString() || "",
       guests: localGuests,
     });
     const params = new URLSearchParams();
     if (localDest) params.set("destination", localDest);
-    if (dateRange.from) params.set("checkIn", dateRange.from.toISOString());
-    if (dateRange.to) params.set("checkOut", dateRange.to.toISOString());
+    if (dateRange.from) params.set("checkinDate", dateRange.from.toISOString());
+    if (dateRange.to) params.set("checkoutDate", dateRange.to.toISOString());
     params.set("guests", String(localGuests));
+
     navigate(`/properties?${params.toString()}`);
   };
 
@@ -52,7 +53,10 @@ export function SearchForm() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-12 w-full justify-start gap-2 text-left font-normal md:h-14"
+              className={cn(
+                "h-12 w-full justify-start gap-2 text-left font-normal md:h-14 transition-all",
+                destOpen && "ring-2 ring-primary border-primary",
+              )}
             >
               <MapPin className="h-4 w-4 shrink-0 text-primary" />
               <span className={cn(!localDest && "text-muted-foreground")}>
@@ -90,7 +94,7 @@ export function SearchForm() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-12 w-full justify-start gap-2 text-left font-normal md:col-span-1 md:h-14"
+              className="h-12 w-full justify-start gap-2 text-left font-normal md:col-span-1 md:h-14 transition-all data-[state=open]:ring-2 data-[state=open]:ring-primary data-[state=open]:border-primary"
             >
               <Calendar className="h-4 w-4 shrink-0 text-primary" />
               <span className={cn(!dateRange.from && "text-muted-foreground")}>
@@ -125,7 +129,7 @@ export function SearchForm() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-12 w-full justify-start gap-2 text-left font-normal md:h-14"
+              className="h-12 w-full justify-start gap-2 text-left font-normal md:h-14 transition-all data-[state=open]:ring-2 data-[state=open]:ring-primary data-[state=open]:border-primary"
             >
               <Users className="h-4 w-4 shrink-0 text-primary" />
               <span>

@@ -2,8 +2,8 @@ import { create } from "zustand";
 
 interface SearchState {
   destination: string;
-  checkIn: string;
-  checkOut: string;
+  checkinDate: string;
+  checkoutDate: string;
   guests: number;
   setSearch: (params: Partial<SearchState>) => void;
   reset: () => void;
@@ -11,8 +11,8 @@ interface SearchState {
 
 const initialState = {
   destination: "",
-  checkIn: "",
-  checkOut: "",
+  checkinDate: "",
+  checkoutDate: "",
   guests: 2,
 };
 
