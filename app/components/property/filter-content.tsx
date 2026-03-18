@@ -1,4 +1,4 @@
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, ArrowDownAZ, ArrowDownZA } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -21,6 +21,8 @@ export interface FilterContentProps {
   toggleCategory: (c: string) => void;
   sortBy: string;
   setSortBy: (v: string) => void;
+  sortOrder: string;
+  setSortOrder: (v: string) => void;
   onReset: () => void;
 }
 
@@ -39,6 +41,8 @@ export function FilterContent({
   toggleCategory,
   sortBy,
   setSortBy,
+  sortOrder,
+  setSortOrder,
   onReset,
 }: FilterContentProps) {
   return (
@@ -116,21 +120,38 @@ export function FilterContent({
         </div>
       </div>
 
-      {/* Sort by Price */}
+      {/* Sort By */}
       <div>
-        <Label className="mb-3 block text-sm font-medium">Sort by Price</Label>
+        <Label className="mb-3 block text-sm font-medium">Sort By</Label>
         <RadioGroup value={sortBy} onValueChange={setSortBy}>
           <label className="flex items-center gap-2 cursor-pointer">
-            <RadioGroupItem value="price_asc" />
-            <span className="text-sm">Lowest Price</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <RadioGroupItem value="price_desc" />
-            <span className="text-sm">Highest Price</span>
+            <RadioGroupItem value="price" />
+            <span className="text-sm">Price</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <RadioGroupItem value="rating" />
-            <span className="text-sm">Best Rating</span>
+            <span className="text-sm">Rating</span>
+          </label>
+        </RadioGroup>
+      </div>
+
+      {/* Sort Order */}
+      <div>
+        <Label className="mb-3 block text-sm font-medium">Sort Order</Label>
+        <RadioGroup value={sortOrder} onValueChange={setSortOrder}>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <RadioGroupItem value="asc" />
+            <span className="flex items-center gap-1.5 text-sm">
+              Ascending (A-Z){" "}
+              <ArrowDownAZ className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <RadioGroupItem value="desc" />
+            <span className="flex items-center gap-1.5 text-sm">
+              Descending (Z-A){" "}
+              <ArrowDownZA className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
           </label>
         </RadioGroup>
       </div>

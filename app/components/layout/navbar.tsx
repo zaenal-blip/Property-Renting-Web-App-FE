@@ -77,6 +77,7 @@ export function Navbar() {
   const [mobileDestinationsOpen, setMobileDestinationsOpen] = useState(false);
   const [destOpen, setDestOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [destSearch, setDestSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -306,7 +307,11 @@ export function Navbar() {
           {/* ── Desktop Auth / Profile ── */}
           <div className="hidden items-center gap-3 lg:flex">
             {isAuthenticated && user ? (
-              <DropdownMenu>
+              <DropdownMenu
+                modal={false}
+                open={profileOpen}
+                onOpenChange={setProfileOpen}
+              >
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2.5 rounded-full p-1 pr-3 outline-none transition-colors hover:bg-muted/50">
                     <Avatar size="default">
@@ -330,10 +335,11 @@ export function Navbar() {
                     </span>
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 opacity-60",
+                        "h-3.5 w-3.5 opacity-60 transition-transform duration-200",
                         isSolid
                           ? "text-muted-foreground"
                           : "text-primary-foreground/70",
+                        profileOpen && "rotate-180",
                       )}
                     />
                   </button>

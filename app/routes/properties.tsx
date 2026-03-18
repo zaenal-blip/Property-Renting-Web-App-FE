@@ -53,6 +53,8 @@ const PropertiesPage = () => {
     toggleCategory: filters.toggleCategory,
     sortBy: filters.sortBy,
     setSortBy: filters.setSortBy,
+    sortOrder: filters.sortOrder,
+    setSortOrder: filters.setSortOrder,
     onReset: filters.resetFilters,
   };
 

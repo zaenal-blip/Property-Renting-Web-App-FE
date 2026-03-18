@@ -5,6 +5,7 @@ interface FilterCriteria {
   searchQuery: string;
   selectedCategories: string[];
   sortBy: string;
+  sortOrder: string;
   minPrice: number | null;
   maxPrice: number | null;
   minRating: number | null;
@@ -23,6 +24,7 @@ export function filterAndSortProperties(
     searchQuery,
     selectedCategories,
     sortBy,
+    sortOrder,
     minPrice,
     maxPrice,
     minRating,
@@ -57,12 +59,17 @@ export function filterAndSortProperties(
   }
 
   // Sort
-  if (sortBy === "price_asc") {
-    result.sort((a, b) => a.lowestPrice - b.lowestPrice);
-  } else if (sortBy === "price_desc") {
-    result.sort((a, b) => b.lowestPrice - a.lowestPrice);
+  if (sortBy === "price") {
+    result.sort((a, b) => {
+      return sortOrder === "asc"
+        ? a.lowestPrice - b.lowestPrice
+        : b.lowestPrice - a.lowestPrice;
+    });
   } else if (sortBy === "rating") {
-    result.sort((a, b) => b.rating - a.rating);
+    result.sort((a, b) => {
+      // For rating, asc means lowest to highest, desc means highest to lowest (standard)
+      return sortOrder === "asc" ? a.rating - b.rating : b.rating - a.rating;
+    });
   }
 
   return result;

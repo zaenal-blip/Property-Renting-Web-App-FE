@@ -69,7 +69,7 @@ export interface PeakSeasonRate {
   value: number;
 }
 
-export type PropertySortBy = "price_asc" | "price_desc" | "rating";
+export type PropertySortBy = "price" | "rating";
 
 export interface PropertyFilters {
   destination?: string;
@@ -78,6 +78,7 @@ export interface PropertyFilters {
   guests?: number;
   category?: string[];
   sort?: PropertySortBy;
+  order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }
@@ -89,6 +90,7 @@ export interface PropertyFilterState {
   searchQuery: string;
   selectedCategories: string[];
   sortBy: string;
+  sortOrder: string;
   minPrice: number | null;
   maxPrice: number | null;
   minRating: number | null;
@@ -107,6 +109,7 @@ export interface PropertyFilterState {
   setLocalMaxPrice: (v: number | "") => void;
   setMinRating: (v: number | null) => void;
   setSortBy: (v: string) => void;
+  setSortOrder: (v: string) => void;
   setPage: (v: number) => void;
   toggleCategory: (cat: string) => void;
   resetFilters: () => void;

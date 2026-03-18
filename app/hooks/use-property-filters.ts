@@ -29,7 +29,11 @@ export function usePropertyFilters(): PropertyFilterState {
   );
   const [sortBy, setSortBy] = useQueryState(
     "sort",
-    parseAsString.withDefault("price_asc"),
+    parseAsString.withDefault("price"),
+  );
+  const [sortOrder, setSortOrder] = useQueryState(
+    "order",
+    parseAsString.withDefault("asc"),
   );
   const [minPriceQ, setMinPriceQ] = useQueryState("minPrice", parseAsInteger);
   const [maxPriceQ, setMaxPriceQ] = useQueryState("maxPrice", parseAsInteger);
@@ -131,6 +135,7 @@ export function usePropertyFilters(): PropertyFilterState {
     setMaxPriceQ(null);
     setMinRatingQ(null);
     setSortBy(null);
+    setSortOrder(null);
     setPage(1);
   }, [
     setSearchQuery,
@@ -140,6 +145,7 @@ export function usePropertyFilters(): PropertyFilterState {
     setMaxPriceQ,
     setMinRatingQ,
     setSortBy,
+    setSortOrder,
     setPage,
   ]);
 
@@ -149,6 +155,7 @@ export function usePropertyFilters(): PropertyFilterState {
     searchQuery,
     selectedCategories,
     sortBy,
+    sortOrder,
     minPrice: minPriceQ,
     maxPrice: maxPriceQ,
     minRating: minRatingQ,
@@ -167,6 +174,7 @@ export function usePropertyFilters(): PropertyFilterState {
     setLocalMaxPrice,
     setMinRating: handleSetMinRating,
     setSortBy,
+    setSortOrder,
     setPage: (v: number) => setPage(v),
     toggleCategory,
     resetFilters,

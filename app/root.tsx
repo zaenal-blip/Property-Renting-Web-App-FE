@@ -15,13 +15,13 @@ import { queryClient } from "./lib/query-client";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Eventku Hub - Platform Manajemen Event" },
+  { title: "Rentivo - Platform Property Renting" },
   {
     name: "description",
     content:
-      "Platform manajemen event modern untuk membuat, mengelola, dan menemukan berbagai event menarik.",
+      "Platform manajemen properti modern untuk membuat, mengelola, dan menemukan berbagai properti menarik.",
   },
-  { name: "author", content: "Eventku Hub" },
+  { name: "author", content: "Rentivo" },
 ];
 
 export const links: Route.LinksFunction = () => [
