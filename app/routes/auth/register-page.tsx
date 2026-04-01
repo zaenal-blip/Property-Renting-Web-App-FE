@@ -46,6 +46,10 @@ export default function RegisterPage() {
       navigate("/login");
     },
     onError: (error: any) => {
+      console.error("Registration error:", error);
+      console.error("Error message:", error?.message);
+      console.error("Error response:", error?.response);
+      console.error("Error code:", error?.code);
       toast.error(
         error?.response?.data?.message ||
           "Registration failed. Please try again.",
