@@ -11,6 +11,10 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { loginSchema, type LoginSchema } from "~/modules/auth/auth.schema";
 import { useAuthStore } from "~/modules/auth/auth.store";
 import { useLogin } from "~/hooks/auth/use-login";
+import { useGoogleLogin } from "~/hooks/auth/use-google-login";
+import { useMutation } from "@tanstack/react-query";
+import { authService } from "~/modules/auth/auth.service";
+import { toast } from "sonner";
 
 // Google SVG Icon
 function GoogleIcon({ className }: { className?: string }) {
@@ -31,18 +35,6 @@ function GoogleIcon({ className }: { className?: string }) {
       <path
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         fill="#EA4335"
-      />
-    </svg>
-  );
-}
-
-// Facebook SVG Icon
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.668 4.533-4.668 1.312 0 2.686.234 2.686.234v2.953H15.83c-1.491 0-1.956.925-1.956 1.875V12h3.328l-.532 3.469h-2.796v8.385C19.612 22.954 24 17.99 24 12z"
-        fill="#1877F2"
       />
     </svg>
   );
@@ -69,7 +61,22 @@ export default function LoginPage() {
     },
   });
 
-  const { mutate: login, isPending } = useLogin();
+  const { mutate: login, isPending, error: loginError } = useLogin() as any;
+  const { handleGoogleLogin, isPending: isGooglePending } = useGoogleLogin();
+
+  const { mutate: resendEmail, isPending: isResending } = useMutation({
+    mutationFn: (email: string) => authService.resendVerification(email),
+    onSuccess: () => {
+      toast.success("Email terkirim! Silakan cek inbox Anda.");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Gagal mengirim ulang email.");
+    },
+  });
+
+  const handleResend = () => {
+    resendEmail(getValues("email"));
+  };
 
   const onSubmit = (data: LoginSchema) => {
     login(data);
@@ -174,7 +181,7 @@ export default function LoginPage() {
                   </Button>
 
                   {/* Divider */}
-                  <div className="relative my-6">
+                  <div className="relative my">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t border-border" />
                     </div>
@@ -185,32 +192,24 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {/* Social Login Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Google Login Button */}
+                  <div className="grid grid-cols-1 gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="lg"
                       className="w-full gap-2 hover:bg-muted/50 hover:text-primary transition-colors"
-                      onClick={() => {
-                        // TODO: Implement Google OAuth
-                      }}
+                      disabled={isGooglePending}
+                      onClick={handleGoogleLogin}
                     >
-                      <GoogleIcon className="h-5 w-5" />
-                      <span className="text-sm font-medium">Google</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      className="w-full gap-2 hover:bg-muted/50 hover:text-primary transition-colors"
-                      onClick={() => {
-                        // TODO: Implement Facebook OAuth
-                      }}
-                    >
-                      <FacebookIcon className="h-5 w-5" />
-                      <span className="text-sm font-medium">Facebook</span>
+                      {isGooglePending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <GoogleIcon className="h-5 w-5" />
+                      )}
+                      <span className="text-sm font-medium">
+                        {isGooglePending ? "Signing in..." : "Google"}
+                      </span>
                     </Button>
                   </div>
                 </motion.div>
@@ -225,6 +224,34 @@ export default function LoginPage() {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="space-y-5"
                 >
+                  {/* UNVERIFIED ALERT BANNER */}
+                  {loginError?.response?.data?.message?.includes("belum diverifikasi") && (
+                    <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-950/30 dark:border-orange-800">
+                      <p className="text-sm text-orange-700 dark:text-orange-300">
+                        {loginError.response.data.message}
+                      </p>
+                    </div>
+                  )}
+
+                  {loginError?.response?.data?.message?.includes("telah kedaluwarsa") && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-sm text-destructive font-medium mb-2">
+                        {loginError.response.data.message}
+                      </p>
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={handleResend}
+                        disabled={isResending}
+                      >
+                        {isResending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                        Kirim Ulang Email Verifikasi
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Email display (read-only) */}
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 shrink-0">

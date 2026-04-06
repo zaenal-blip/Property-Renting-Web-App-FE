@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService } from "./auth.service";
-import type { LoginSchema, RegisterSchema } from "./auth.schema";
+import type { LoginSchema, RegisterSchema, OnboardingSchema } from "./auth.schema";
 import type { User } from "~/types/user";
 
 interface AuthState {
@@ -9,7 +9,9 @@ interface AuthState {
   isAuthenticated: boolean;
   hasHydrated: boolean;
   login: (payload: LoginSchema) => Promise<void>;
-  register: (payload: RegisterSchema) => Promise<void>;
+  register: (payload: RegisterSchema) => Promise<{ message: string }>;
+  googleLogin: (accessToken: string) => Promise<{ needsOnboarding: boolean }>;
+  onboarding: (payload: OnboardingSchema) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
   updateUser: (userData: Partial<User>) => void;
@@ -24,24 +26,41 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       hasHydrated: false,
 
-      // LOGIN
+      // LOGIN (email)
       async login(payload) {
         const data = await authService.login(payload);
         const userData: User = data.user || data;
 
-        // Token is now stored in httpOnly cookie by backend
         set({
           user: userData,
           isAuthenticated: true,
         });
       },
 
-      // REGISTER
+      // REGISTER (email) — does NOT auto-login, user must verify email first
       async register(payload) {
         const data = await authService.register(payload);
+        return data; // { message: "..." }
+      },
+
+      // GOOGLE LOGIN
+      async googleLogin(accessToken: string) {
+        const data = await authService.googleLogin(accessToken);
+        const { needsOnboarding, ...userData } = data;
+
+        set({
+          user: userData as User,
+          isAuthenticated: true,
+        });
+
+        return { needsOnboarding };
+      },
+
+      // ONBOARDING
+      async onboarding(payload: OnboardingSchema) {
+        const data = await authService.onboarding(payload);
         const userData: User = data.user || data;
 
-        // Token is now stored in httpOnly cookie by backend
         set({
           user: userData,
           isAuthenticated: true,
@@ -53,14 +72,13 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authService.logout();
         } catch (error) {
-          // Continue with local logout even if API call fails
           console.error("Logout API error:", error);
         }
         set({ user: null, isAuthenticated: false });
         window.location.href = "/";
       },
 
-      // Set user data (untuk login/register)
+      // Set user data
       setUser(user: User) {
         set({
           user,
@@ -68,7 +86,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      // Update partial user data (untuk profile update)
+      // Update partial user data
       updateUser(userData: Partial<User>) {
         const currentUser = get().user;
         if (currentUser) {
