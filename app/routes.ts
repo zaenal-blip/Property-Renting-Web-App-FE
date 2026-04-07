@@ -32,6 +32,8 @@ export default [
   route("/register", "routes/auth/register-page.tsx"),
   route("/forgot-password", "routes/auth/forgot-password-page.tsx"),
   route("/reset-password", "routes/auth/reset-password-page.tsx"),
+  route("/verify-email", "routes/auth/verify-email-page.tsx"),
+  route("/onboarding", "routes/auth/onboarding-page.tsx"),
 
   // =====================
   // 404

@@ -18,6 +18,9 @@ export function useLogin() {
         email: data.email,
         profilePicture: data.profilePicture,
         role: data.role,
+        provider: data.provider,
+        phone: data.phone,
+        businessName: data.businessName,
         isVerified: data.isVerified,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
@@ -28,9 +31,15 @@ export function useLogin() {
     },
 
     onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Login failed. Please try again.",
-      );
+      const message = error.response?.data?.message;
+      if (
+        message?.includes("belum diverifikasi") ||
+        message?.includes("telah kedaluwarsa")
+      ) {
+        // Suppress toast, handled in UI
+        return;
+      }
+      toast.error(message || "Login failed. Please try again.");
     },
   });
 }

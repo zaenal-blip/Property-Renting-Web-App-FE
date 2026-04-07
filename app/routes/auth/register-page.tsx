@@ -1,24 +1,21 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
-import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Calendar, Eye, EyeOff, Home, Loader2 } from "lucide-react";
+import { Home, Loader2, CheckCircle, Mail, Building2, Phone } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { toast } from "sonner";
-import { registerSchema, RegisterSchema } from "~/modules/auth/auth.schema";
-import { useAuthStore } from "~/modules/auth/auth.store";
+import { registerSchema, type RegisterSchema } from "~/modules/auth/auth.schema";
 import { useMutation } from "@tanstack/react-query";
 import { authService } from "~/modules/auth/auth.service";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register: registerUser } = useAuthStore();
-  const [showPassword, setShowPassword] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const {
     register,
@@ -31,8 +28,6 @@ export default function RegisterPage() {
     defaultValues: {
       name: "",
       email: "",
-      password: "",
-      confirmPassword: "",
       role: "USER",
     },
   });
@@ -42,8 +37,7 @@ export default function RegisterPage() {
   const { mutate, isPending } = useMutation({
     mutationFn: (data: RegisterSchema) => authService.register(data),
     onSuccess: () => {
-      toast.success("Account created successfully!");
-      navigate("/login");
+      setRegistrationSuccess(true);
     },
     onError: (error: any) => {
       toast.error(
@@ -56,6 +50,51 @@ export default function RegisterPage() {
   const onSubmit = (data: RegisterSchema) => {
     mutate(data);
   };
+
+  // Success state - show email verification message
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md text-center"
+        >
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+            <Mail className="h-10 w-10 text-green-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-3">
+            Check Your Email
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            We've sent a verification link to your email address. Please check
+            your inbox and click the link to verify your account and set your
+            password.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            The verification link will expire in{" "}
+            <span className="font-semibold text-foreground">1 hour</span>.
+          </p>
+          <div className="space-y-3">
+            <Button
+              onClick={() => navigate("/login")}
+              className="w-full btn-gradient"
+              size="lg"
+            >
+              Go to Login
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setRegistrationSuccess(false)}
+              className="w-full text-muted-foreground"
+            >
+              ← Back to Register
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -79,11 +118,11 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-8 flex">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md m-auto"
         >
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
@@ -179,49 +218,68 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <div className="relative mt-1.5">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
-                  className="pr-10 input-focus"
-                  {...register("password")}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
+            <AnimatePresence>
+              {selectedRole === "TENANT" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: "auto", marginTop: 20 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  className="space-y-5 overflow-hidden"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+                  <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-amber-600 shrink-0" />
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                        Host Account — Tell us about your business
+                      </p>
+                    </div>
+                  </div>
 
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                className="mt-1.5 input-focus"
-                {...register("confirmPassword")}
-              />
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.confirmPassword.message}
-                </p>
+                  <div>
+                    <Label htmlFor="businessName">Business Name</Label>
+                    <Input
+                      id="businessName"
+                      placeholder="e.g. Sunshine Villas"
+                      className="mt-1.5 input-focus"
+                      {...register("businessName")}
+                    />
+                    {errors.businessName && (
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.businessName.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative mt-1.5">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="e.g. +62 812 3456 7890"
+                        className="pl-10 input-focus"
+                        {...register("phone")}
+                      />
+                    </div>
+                    {errors.phone && (
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.phone.message}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
               )}
+            </AnimatePresence>
+
+            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  After registration, we'll send a verification link to your
+                  email where you can set your password.
+                </p>
+              </div>
             </div>
 
             <Button
