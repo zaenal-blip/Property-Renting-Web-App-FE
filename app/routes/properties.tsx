@@ -13,29 +13,33 @@ import { FilterContent } from "~/components/property/filter-content";
 import { PropertyEmptyState } from "~/components/property/property-empty-state";
 import { PropertyPagination } from "~/components/property/property-pagination";
 import { usePropertyFilters } from "~/hooks/use-property-filters";
-import {
-  filterAndSortProperties,
-  paginateItems,
-  getTotalPages,
-} from "~/lib/property-utils";
+// Removed unused mock imports
 import { ITEMS_PER_PAGE } from "~/types/property";
-import { mockProperties } from "~/data/mock-properties";
+import { usePropertiesQuery } from "~/hooks/use-properties";
 
 const PropertiesPage = () => {
   const filters = usePropertyFilters();
 
-  // ── Derived data ──
-  const allFiltered = useMemo(
-    () => filterAndSortProperties(mockProperties, filters),
-    [filters],
-  );
+  // ── Fetch data from backend ──
+  const queryParams = {
+    page: filters.page,
+    take: ITEMS_PER_PAGE,
+    search: filters.searchQuery || undefined,
+    city: filters.destination || undefined,
+    categoryId: filters.selectedCategories.length > 0 ? filters.selectedCategories[0] : undefined,
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+    startDate: filters.startDate || undefined,
+    endDate: filters.endDate || undefined,
+    capacity: filters.capacity || undefined,
+  };
 
-  const totalPages = getTotalPages(allFiltered.length, ITEMS_PER_PAGE);
+  const { data: response, isLoading, isError } = usePropertiesQuery(queryParams);
 
-  const paginatedProperties = useMemo(
-    () => paginateItems(allFiltered, filters.page, ITEMS_PER_PAGE),
-    [allFiltered, filters.page],
-  );
+  const paginatedProperties = response?.data || [];
+  const totalPages = response?.meta?.totalPages || response?.meta?.total 
+    ? Math.ceil(response.meta.total / ITEMS_PER_PAGE) 
+    : 1;
 
   // ── Shared filter props ──
   const filterProps = {
@@ -55,6 +59,12 @@ const PropertiesPage = () => {
     setSortBy: filters.setSortBy,
     sortOrder: filters.sortOrder,
     setSortOrder: filters.setSortOrder,
+    startDate: filters.localStartDate,
+    setStartDate: filters.setLocalStartDate,
+    endDate: filters.localEndDate,
+    setEndDate: filters.setLocalEndDate,
+    capacity: filters.localCapacity,
+    setCapacity: filters.setLocalCapacity,
     onReset: filters.resetFilters,
   };
 
@@ -68,7 +78,7 @@ const PropertiesPage = () => {
             : "All Properties"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Showing {allFiltered.length} properties
+          Showing {response?.meta?.total || 0} properties
         </p>
       </div>
 
@@ -109,9 +119,17 @@ const PropertiesPage = () => {
           </div>
 
           {/* Property Grid / Empty State */}
-          {paginatedProperties.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground">
+              Loading properties...
+            </div>
+          ) : isError ? (
+            <div className="flex items-center justify-center py-20 text-red-500">
+              Error loading properties.
+            </div>
+          ) : paginatedProperties.length > 0 ? (
             <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
-              {paginatedProperties.map((property) => (
+              {paginatedProperties.map((property: any) => (
                 <PropertyCard key={property.id} property={property} />
               ))}
             </div>

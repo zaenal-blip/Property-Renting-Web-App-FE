@@ -13,7 +13,6 @@ import {
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
-import { mockProperties } from "~/data/mock-properties";
 import { formatPrice } from "~/lib/utils";
 import { ImageGallery } from "~/components/property/image-gallery";
 import { RoomCard } from "~/components/property/room-card";
@@ -21,6 +20,7 @@ import { ReviewSection } from "~/components/property/review-section";
 import { toast } from "sonner";
 import type { Room } from "~/types/property";
 import { useBookingStore } from "~/modules/booking/booking.store";
+import { usePropertyDetailQuery } from "~/hooks/use-properties";
 
 const amenityIcons: Record<string, React.ElementType> = {
   WiFi: Wifi,
@@ -37,9 +37,17 @@ const PropertyDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const setBooking = useBookingStore((s) => s.setBooking);
-  const property = mockProperties.find((p) => p.slug === slug);
+  const { data: property, isLoading, isError } = usePropertyDetailQuery(slug || "");
 
-  if (!property) {
+  if (isLoading) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
+        <p className="text-muted-foreground">Loading property details...</p>
+      </div>
+    );
+  }
+
+  if (isError || !property) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
         <div className="text-center">
@@ -73,7 +81,7 @@ const PropertyDetail = () => {
       </Button>
 
       <ImageGallery
-        images={property.images.map((img) => img.imageUrl)}
+        images={property.images?.map((img: any) => img.imageUrl) || []}
         name={property.name}
       />
 
@@ -88,9 +96,9 @@ const PropertyDetail = () => {
 
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-warning text-warning" />
-                <span className="text-sm font-medium">{property.rating}</span>
+                <span className="text-sm font-medium">{property.rating || "New"}</span>
                 <span className="text-xs text-muted-foreground">
-                  ({property.reviewCount} reviews)
+                  ({property.reviewCount || 0} reviews)
                 </span>
               </div>
             </div>
@@ -123,7 +131,7 @@ const PropertyDetail = () => {
               Amenities
             </h2>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {property.amenities.map((amenity) => {
+              {(property.amenities || ["WiFi", "Parking"]).map((amenity: string) => {
                 const Icon = amenityIcons[amenity] || Wifi;
                 return (
                   <div
@@ -146,7 +154,7 @@ const PropertyDetail = () => {
               Available Rooms
             </h2>
             <div className="space-y-4">
-              {property.rooms.map((room) => (
+              {property.rooms?.map((room: any) => (
                 <RoomCard key={room.id} room={room} onBook={handleBook} />
               ))}
             </div>
@@ -171,7 +179,10 @@ const PropertyDetail = () => {
               </span>
               <div className="flex items-end gap-1">
                 <span className="text-2xl font-bold text-primary">
-                  {formatPrice(property.lowestPrice)}
+                  {formatPrice(
+                    property.lowestPrice ?? 
+                    Math.min(...(property.rooms?.map((r: any) => Number(r.basePrice)) || [0]))
+                  )}
                 </span>
                 <span className="mb-1 text-sm text-muted-foreground">
                   /malam
@@ -183,12 +194,12 @@ const PropertyDetail = () => {
               className="w-full"
               size="lg"
               onClick={() => {
-                const availableRoom = property.rooms[0]; // Simplified for now since Room interface changed
+                const availableRoom = property.rooms?.[0];
                 if (availableRoom) handleBook(availableRoom);
               }}
-              disabled={!property.isAvailable}
+              disabled={!property.rooms?.length}
             >
-              {property.isAvailable ? "Book Now" : "Not Available"}
+              {property.rooms?.length ? "Book Now" : "Not Available"}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Free cancellation available

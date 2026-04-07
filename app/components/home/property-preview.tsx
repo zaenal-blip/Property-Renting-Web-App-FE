@@ -3,10 +3,16 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { PropertyCard } from "~/components/shared/property-card";
 import { motion } from "framer-motion";
-import { mockProperties } from "~/data/mock-properties";
+import { usePropertiesQuery } from "~/hooks/use-properties";
 
 export function PropertyPreview() {
-  const featured = mockProperties.slice(0, 6);
+  const { data: response, isLoading } = usePropertiesQuery({ 
+    take: 6,
+    sortBy: "createdAt",
+    sortOrder: "desc"
+  });
+
+  const featured = response?.data || [];
 
   return (
     <section className="container mx-auto py-12 px-4 md:py-16">
@@ -32,17 +38,28 @@ export function PropertyPreview() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {featured.map((property, i) => (
-          <motion.div
-            key={property.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-          >
-            <PropertyCard property={property} />
-          </motion.div>
-        ))}
+        {isLoading ? (
+          // Simple loading skeletons
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-[300px] w-full animate-pulse rounded-2xl bg-muted" />
+          ))
+        ) : featured.length > 0 ? (
+          featured.map((property: any, i: number) => (
+            <motion.div
+              key={property.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+            >
+              <PropertyCard property={property} />
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-full py-12 text-center text-muted-foreground">
+            No properties found
+          </div>
+        )}
       </div>
 
       <div className="mt-8 text-center md:hidden">

@@ -95,18 +95,27 @@ export interface PropertyFilterState {
   maxPrice: number | null;
   minRating: number | null;
   page: number;
+  startDate: string | null;
+  endDate: string | null;
+  capacity: number | null;
 
   // Local (debounced) input state
   localSearchName: string;
   localLocation: string;
   localMinPrice: number | "";
   localMaxPrice: number | "";
+  localStartDate: string | "";
+  localEndDate: string | "";
+  localCapacity: number | "";
 
   // Setters
   setLocalSearchName: (v: string) => void;
   setLocalLocation: (v: string) => void;
   setLocalMinPrice: (v: number | "") => void;
   setLocalMaxPrice: (v: number | "") => void;
+  setLocalStartDate: (v: string | "") => void;
+  setLocalEndDate: (v: string | "") => void;
+  setLocalCapacity: (v: number | "") => void;
   setMinRating: (v: number | null) => void;
   setSortBy: (v: string) => void;
   setSortOrder: (v: string) => void;

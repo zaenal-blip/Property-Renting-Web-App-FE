@@ -39,6 +39,9 @@ export function usePropertyFilters(): PropertyFilterState {
   const [maxPriceQ, setMaxPriceQ] = useQueryState("maxPrice", parseAsInteger);
   const [minRatingQ, setMinRatingQ] = useQueryState("minRating", parseAsFloat);
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const [startDateQ, setStartDateQ] = useQueryState("startDate", parseAsString);
+  const [endDateQ, setEndDateQ] = useQueryState("endDate", parseAsString);
+  const [capacityQ, setCapacityQ] = useQueryState("capacity", parseAsInteger);
 
   // ── Local debounced state ──
   const [localSearchName, setLocalSearchName] = useState(searchQuery || "");
@@ -56,6 +59,15 @@ export function usePropertyFilters(): PropertyFilterState {
     maxPriceQ ?? "",
   );
   const debouncedMaxPrice = useDebounce(localMaxPrice, 500);
+
+  const [localStartDate, setLocalStartDate] = useState<string | "">(startDateQ ?? "");
+  const debouncedStartDate = useDebounce(localStartDate, 500);
+
+  const [localEndDate, setLocalEndDate] = useState<string | "">(endDateQ ?? "");
+  const debouncedEndDate = useDebounce(localEndDate, 500);
+
+  const [localCapacity, setLocalCapacity] = useState<number | "">(capacityQ ?? "");
+  const debouncedCapacity = useDebounce(localCapacity, 500);
 
   // ── Sync debounced values → URL params ──
   useEffect(() => {
@@ -82,6 +94,24 @@ export function usePropertyFilters(): PropertyFilterState {
       changed = true;
     }
 
+    const currentStart = startDateQ ?? "";
+    if (debouncedStartDate !== currentStart) {
+      setStartDateQ(debouncedStartDate === "" ? null : debouncedStartDate);
+      changed = true;
+    }
+
+    const currentEnd = endDateQ ?? "";
+    if (debouncedEndDate !== currentEnd) {
+      setEndDateQ(debouncedEndDate === "" ? null : debouncedEndDate);
+      changed = true;
+    }
+
+    const currentCap = capacityQ ?? "";
+    if (debouncedCapacity !== currentCap) {
+      setCapacityQ(debouncedCapacity === "" ? null : debouncedCapacity);
+      changed = true;
+    }
+
     if (changed) {
       setPage(1);
     }
@@ -96,8 +126,16 @@ export function usePropertyFilters(): PropertyFilterState {
     minPriceQ,
     setMinPriceQ,
     debouncedMaxPrice,
-    maxPriceQ,
     setMaxPriceQ,
+    debouncedStartDate,
+    startDateQ,
+    setStartDateQ,
+    debouncedEndDate,
+    endDateQ,
+    setEndDateQ,
+    debouncedCapacity,
+    capacityQ,
+    setCapacityQ,
     setPage,
   ]);
 
@@ -128,12 +166,18 @@ export function usePropertyFilters(): PropertyFilterState {
     setLocalLocation("");
     setLocalMinPrice("");
     setLocalMaxPrice("");
+    setLocalStartDate("");
+    setLocalEndDate("");
+    setLocalCapacity("");
     setSearchQuery(null);
     setDestination(null);
     setSelectedCategories(null);
     setMinPriceQ(null);
     setMaxPriceQ(null);
     setMinRatingQ(null);
+    setStartDateQ(null);
+    setEndDateQ(null);
+    setCapacityQ(null);
     setSortBy(null);
     setSortOrder(null);
     setPage(1);
@@ -144,6 +188,9 @@ export function usePropertyFilters(): PropertyFilterState {
     setMinPriceQ,
     setMaxPriceQ,
     setMinRatingQ,
+    setStartDateQ,
+    setEndDateQ,
+    setCapacityQ,
     setSortBy,
     setSortOrder,
     setPage,
@@ -160,18 +207,27 @@ export function usePropertyFilters(): PropertyFilterState {
     maxPrice: maxPriceQ,
     minRating: minRatingQ,
     page,
+    startDate: startDateQ,
+    endDate: endDateQ,
+    capacity: capacityQ,
 
     // Local input state
     localSearchName,
     localLocation,
     localMinPrice,
     localMaxPrice,
+    localStartDate,
+    localEndDate,
+    localCapacity,
 
     // Setters
     setLocalSearchName,
     setLocalLocation,
     setLocalMinPrice,
     setLocalMaxPrice,
+    setLocalStartDate,
+    setLocalEndDate,
+    setLocalCapacity,
     setMinRating: handleSetMinRating,
     setSortBy,
     setSortOrder,

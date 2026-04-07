@@ -15,6 +15,12 @@ export interface FilterContentProps {
   setMinPrice: (v: number | "") => void;
   maxPrice: number | "";
   setMaxPrice: (v: number | "") => void;
+  startDate: string | "";
+  setStartDate: (v: string | "") => void;
+  endDate: string | "";
+  setEndDate: (v: string | "") => void;
+  capacity: number | "";
+  setCapacity: (v: number | "") => void;
   minRating: number | null;
   setMinRating: (v: number | null) => void;
   selectedCategories: string[];
@@ -35,6 +41,12 @@ export function FilterContent({
   setMinPrice,
   maxPrice,
   setMaxPrice,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+  capacity,
+  setCapacity,
   minRating,
   setMinRating,
   selectedCategories,
@@ -99,6 +111,35 @@ export function FilterContent({
             }
           />
         </div>
+      </div>
+
+      {/* Date Range */}
+      <div>
+        <Label className="mb-3 block text-sm font-medium">Availability Dates</Label>
+        <div className="flex flex-col gap-2">
+          <Input
+            type="date"
+            value={startDate || ""}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={endDate || ""}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Guests (Capacity) */}
+      <div>
+        <Label className="mb-3 block text-sm font-medium">Guests</Label>
+        <Input
+          type="number"
+          placeholder="Min capacity..."
+          min={1}
+          value={capacity}
+          onChange={(e) => setCapacity(e.target.value ? Number(e.target.value) : "")}
+        />
       </div>
 
       {/* Category */}
