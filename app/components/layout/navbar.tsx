@@ -17,6 +17,8 @@ import {
   LogOut,
   BedDouble,
   Search,
+  Settings,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -359,27 +361,59 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      className="cursor-pointer gap-3 py-2"
-                      onClick={() => navigate("/user/bookings")}
-                    >
-                      <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-                      My Bookings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer gap-3 py-2"
-                      onClick={() => navigate("/user/saved")}
-                    >
-                      <Bookmark className="h-4 w-4 text-muted-foreground" />
-                      Saved Properties
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer gap-3 py-2"
-                      onClick={() => navigate("/user/profile")}
-                    >
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      Profile
-                    </DropdownMenuItem>
+                    {user?.role === "TENANT" ? (
+                      /* ── TENANT Menu ── */
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() => navigate("/tenant/dashboard")}
+                        >
+                          <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                          Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() =>
+                            navigate("/tenant/dashboard/settings")
+                          }
+                        >
+                          <Settings className="h-4 w-4 text-muted-foreground" />
+                          Settings
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      /* ── USER Menu ── */
+                      <>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() => navigate("/settings")}
+                        >
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() => navigate("/user/bookings")}
+                        >
+                          <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+                          My Bookings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() => navigate("/user/saved")}
+                        >
+                          <Bookmark className="h-4 w-4 text-muted-foreground" />
+                          Saved Properties
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-3 py-2"
+                          onClick={() => navigate("/settings")}
+                        >
+                          <Settings className="h-4 w-4 text-muted-foreground" />
+                          Settings
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -589,30 +623,63 @@ export function Navbar() {
                       </span>
                     </div>
                   </div>
-                  <Link
-                    to="/user/bookings"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-                    My Bookings
-                  </Link>
-                  <Link
-                    to="/user/saved"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <Bookmark className="h-4 w-4 text-muted-foreground" />
-                    Saved Properties
-                  </Link>
-                  <Link
-                    to="/user/profile"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Profile
-                  </Link>
+                  {user?.role === "TENANT" ? (
+                    /* ── TENANT Mobile Menu ── */
+                    <>
+                      <Link
+                        to="/tenant/dashboard"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/tenant/dashboard/settings"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        Settings
+                      </Link>
+                    </>
+                  ) : (
+                    /* ── USER Mobile Menu ── */
+                    <>
+                      <Link
+                        to="/settings"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/user/bookings"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+                        My Bookings
+                      </Link>
+                      <Link
+                        to="/user/saved"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <Bookmark className="h-4 w-4 text-muted-foreground" />
+                        Saved Properties
+                      </Link>
+                      <Link
+                        to="/settings"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        Settings
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       logout();
