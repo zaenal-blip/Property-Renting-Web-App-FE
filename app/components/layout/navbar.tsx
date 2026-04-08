@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   Menu,
@@ -19,6 +19,7 @@ import {
   Search,
   Settings,
   LayoutDashboard,
+  Loader2,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -39,7 +40,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 import { useScrollPosition } from "~/hooks/use-scroll-position";
 import { useAuthStore } from "~/modules/auth/auth.store";
-import { mockProperties } from "~/data/mock-properties";
+import { useLocations } from "~/hooks/use-properties";
 
 // ─── DATA ───────────────────────────────────────────────
 const propertyTypes = [
@@ -49,15 +50,6 @@ const propertyTypes = [
   { label: "Apartment", value: "apartment", icon: Building },
   { label: "Guesthouse", value: "guesthouse", icon: Tent },
 ];
-
-const uniqueCities = Array.from(
-  new Set(mockProperties.map((p) => p.city)),
-).sort();
-
-const destinations = uniqueCities.map((city) => ({
-  label: city,
-  value: city.toLowerCase(),
-}));
 
 // ─── HELPERS ────────────────────────────────────────────
 function getUserInitials(name?: string | null): string {
@@ -87,20 +79,18 @@ export function Navbar() {
   const isHome = location.pathname === "/";
   const isSolid = isScrolled || !isHome;
 
-  // Filter destinations based on search with a cap for scalability
-  const searchResult = useMemo(() => {
-    const search = destSearch.trim().toLowerCase();
-    const filtered = search
-      ? destinations.filter((d) => d.label.toLowerCase().includes(search))
-      : destinations;
+  const [debouncedDestSearch, setDebouncedDestSearch] = useState("");
 
-    // Best practice: cap the results so the DOM doesn't get overloaded when city list grows to hundreds
-    return {
-      items: filtered.slice(0, 8),
-      total: filtered.length,
-      hasMore: filtered.length > 8,
-    };
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedDestSearch(destSearch);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [destSearch]);
+
+  const { data: locations = [], isLoading: isLoadingLocations } =
+    useLocations(debouncedDestSearch);
 
   // Shared text color class
   const navTextClass = cn(
@@ -216,9 +206,13 @@ export function Navbar() {
                   </div>
                 </div>
                 <div className="p-1.5 max-h-[300px] overflow-y-auto">
-                  {searchResult.items.length > 0 ? (
+                  {isLoadingLocations ? (
+                    <div className="flex h-16 items-center justify-center text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : locations.length > 0 ? (
                     <>
-                      {searchResult.items.map((dest) => (
+                      {locations.map((dest) => (
                         <button
                           key={dest.value}
                           onClick={() => {
@@ -231,12 +225,6 @@ export function Navbar() {
                           <span className="font-medium px-1">{dest.label}</span>
                         </button>
                       ))}
-                      {searchResult.hasMore && (
-                        <div className="px-3 pt-3 pb-2 mt-1 text-center text-xs font-medium text-muted-foreground border-t border-border">
-                          {searchResult.total - 8} more cities available. Type
-                          to search.
-                        </div>
-                      )}
                     </>
                   ) : (
                     <div className="px-3 py-4 text-center text-sm text-muted-foreground">
@@ -526,8 +514,12 @@ export function Navbar() {
                 )}
               >
                 <div className="ml-6 mt-1 flex flex-col gap-0.5 border-l-2 border-border pl-4 pb-1">
-                  {/* Reuse the capped searchResult for mobile to keep DOM light */}
-                  {searchResult.items.map((dest) => (
+                  {/* Reuse the capped locations for mobile to keep DOM light */}
+                  {isLoadingLocations ? (
+                    <div className="px-3 py-4 text-xs text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : locations.map((dest) => (
                     <Link
                       key={dest.value}
                       to={`/properties?city=${dest.value}`}
@@ -537,11 +529,10 @@ export function Navbar() {
                       {dest.label}
                     </Link>
                   ))}
-                  {searchResult.hasMore && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground italic">
-                      + {searchResult.total - 8} more cities. View on desktop to
-                      search.
-                    </div>
+                  {!isLoadingLocations && locations.length === 0 && (
+                     <div className="px-3 py-4 text-xs text-muted-foreground">
+                       No cities found.
+                     </div>
                   )}
                 </div>
               </div>

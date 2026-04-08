@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -13,42 +12,33 @@ import { FilterContent } from "~/components/property/filter-content";
 import { PropertyEmptyState } from "~/components/property/property-empty-state";
 import { PropertyPagination } from "~/components/property/property-pagination";
 import { usePropertyFilters } from "~/hooks/use-property-filters";
-import {
-  filterAndSortProperties,
-  paginateItems,
-  getTotalPages,
-} from "~/lib/property-utils";
+import { useProperties } from "~/hooks/use-properties";
 import { ITEMS_PER_PAGE } from "~/types/property";
-import { mockProperties } from "~/data/mock-properties";
 
 const PropertiesPage = () => {
   const filters = usePropertyFilters();
 
-  // ── Derived data ──
-  const allFiltered = useMemo(
-    () => filterAndSortProperties(mockProperties, filters),
-    [filters],
-  );
+  // Build API query params
+  const queryParams = {
+    search: filters.searchQuery || undefined,
+    categoryId: filters.categoryId || undefined,
+    city: filters.destination || undefined,
+    sortBy: filters.sortBy || "createdAt",
+    sortOrder: (filters.sortOrder || "desc") as "asc" | "desc",
+    page: filters.page,
+    take: ITEMS_PER_PAGE,
+  };
 
-  const totalPages = getTotalPages(allFiltered.length, ITEMS_PER_PAGE);
+  const { data, isLoading, isError, error } = useProperties(queryParams);
 
-  const paginatedProperties = useMemo(
-    () => paginateItems(allFiltered, filters.page, ITEMS_PER_PAGE),
-    [allFiltered, filters.page],
-  );
+  const properties = data?.data || [];
+  const meta = data?.meta;
+  const totalPages = meta?.totalPages || 1;
 
   // ── Shared filter props ──
   const filterProps = {
     searchName: filters.localSearchName,
     setSearchName: filters.setLocalSearchName,
-    location: filters.localLocation,
-    setLocation: filters.setLocalLocation,
-    minPrice: filters.localMinPrice,
-    setMinPrice: filters.setLocalMinPrice,
-    maxPrice: filters.localMaxPrice,
-    setMaxPrice: filters.setLocalMaxPrice,
-    minRating: filters.minRating,
-    setMinRating: filters.setMinRating,
     selectedCategories: filters.selectedCategories,
     toggleCategory: filters.toggleCategory,
     sortBy: filters.sortBy,
@@ -68,7 +58,9 @@ const PropertiesPage = () => {
             : "All Properties"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Showing {allFiltered.length} properties
+          {isLoading
+            ? "Loading properties..."
+            : `Showing ${properties.length} of ${meta?.total || 0} properties`}
         </p>
       </div>
 
@@ -108,21 +100,52 @@ const PropertiesPage = () => {
             </Sheet>
           </div>
 
-          {/* Property Grid / Empty State */}
-          {paginatedProperties.length > 0 ? (
-            <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
-              {paginatedProperties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Loading properties...
+              </p>
             </div>
-          ) : (
-            <PropertyEmptyState onReset={filters.resetFilters} />
+          )}
+
+          {/* Error State */}
+          {isError && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <p className="text-sm text-destructive">
+                Failed to load properties.{" "}
+                {(error as Error)?.message || "Please try again."}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {/* Property Grid / Empty State */}
+          {!isLoading && !isError && (
+            <>
+              {properties.length > 0 ? (
+                <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
+                  {properties.map((property) => (
+                    <PropertyCard key={property.id} property={property} />
+                  ))}
+                </div>
+              ) : (
+                <PropertyEmptyState onReset={filters.resetFilters} />
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* Pagination */}
-      {paginatedProperties.length > 0 && totalPages > 1 && (
+      {!isLoading && properties.length > 0 && totalPages > 1 && (
         <PropertyPagination
           page={filters.page}
           totalPages={totalPages}
