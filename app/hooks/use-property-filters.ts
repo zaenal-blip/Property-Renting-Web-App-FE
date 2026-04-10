@@ -1,182 +1,121 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  useQueryState,
-  parseAsString,
-  parseAsArrayOf,
-  parseAsInteger,
-  parseAsFloat,
-} from "nuqs";
+import { useQueryState, parseAsString, parseAsInteger } from "nuqs";
 import { useDebounce } from "~/hooks/use-debounce";
-import type { PropertyFilterState } from "~/types/property";
 
 /**
- * Custom hook that encapsulates all URL-synced filter state,
- * debounced local inputs, and filter actions for the Properties page.
+ * Simplified hook for server-side filtering.
+ * Manages URL state for: search, categoryId, sortBy, sortOrder, page.
+ * All filtering/sorting/pagination is done server-side.
  */
-export function usePropertyFilters(): PropertyFilterState {
+export function usePropertyFilters() {
   // ── URL-synced query state ──
-  const [destination, setDestination] = useQueryState(
-    "destination",
-    parseAsString.withDefault(""),
-  );
   const [searchQuery, setSearchQuery] = useQueryState(
     "search",
     parseAsString.withDefault(""),
   );
-  const [selectedCategories, setSelectedCategories] = useQueryState(
+  const [categoryId, setCategoryId] = useQueryState(
     "category",
-    parseAsArrayOf(parseAsString).withDefault([]),
+    parseAsString.withDefault(""),
   );
   const [sortBy, setSortBy] = useQueryState(
     "sort",
-    parseAsString.withDefault("price"),
+    parseAsString.withDefault("createdAt"),
   );
   const [sortOrder, setSortOrder] = useQueryState(
     "order",
-    parseAsString.withDefault("asc"),
+    parseAsString.withDefault("desc"),
   );
-  const [minPriceQ, setMinPriceQ] = useQueryState("minPrice", parseAsInteger);
-  const [maxPriceQ, setMaxPriceQ] = useQueryState("maxPrice", parseAsInteger);
-  const [minRatingQ, setMinRatingQ] = useQueryState("minRating", parseAsFloat);
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 
-  // ── Local debounced state ──
+  // Keep destination from the landing page search form
+  const [destination, setDestination] = useQueryState(
+    "destination",
+    parseAsString.withDefault(""),
+  );
+
+  // ── Debounced search input ──
   const [localSearchName, setLocalSearchName] = useState(searchQuery || "");
-  const debouncedSearchName = useDebounce(localSearchName, 500);
+  const debouncedSearchName = useDebounce(localSearchName, 400);
 
-  const [localLocation, setLocalLocation] = useState(destination || "");
-  const debouncedLocation = useDebounce(localLocation, 500);
-
-  const [localMinPrice, setLocalMinPrice] = useState<number | "">(
-    minPriceQ ?? "",
-  );
-  const debouncedMinPrice = useDebounce(localMinPrice, 500);
-
-  const [localMaxPrice, setLocalMaxPrice] = useState<number | "">(
-    maxPriceQ ?? "",
-  );
-  const debouncedMaxPrice = useDebounce(localMaxPrice, 500);
-
-  // ── Sync debounced values → URL params ──
+  // Sync debounced search → URL
   useEffect(() => {
-    let changed = false;
-
     if (debouncedSearchName !== (searchQuery || "")) {
       setSearchQuery(debouncedSearchName || null);
-      changed = true;
-    }
-    if (debouncedLocation !== (destination || "")) {
-      setDestination(debouncedLocation || null);
-      changed = true;
-    }
-
-    const currentMin = minPriceQ ?? "";
-    if (debouncedMinPrice !== currentMin) {
-      setMinPriceQ(debouncedMinPrice === "" ? null : debouncedMinPrice);
-      changed = true;
-    }
-
-    const currentMax = maxPriceQ ?? "";
-    if (debouncedMaxPrice !== currentMax) {
-      setMaxPriceQ(debouncedMaxPrice === "" ? null : debouncedMaxPrice);
-      changed = true;
-    }
-
-    if (changed) {
       setPage(1);
     }
-  }, [
-    debouncedSearchName,
-    searchQuery,
-    setSearchQuery,
-    debouncedLocation,
-    destination,
-    setDestination,
-    debouncedMinPrice,
-    minPriceQ,
-    setMinPriceQ,
-    debouncedMaxPrice,
-    maxPriceQ,
-    setMaxPriceQ,
-    setPage,
-  ]);
+  }, [debouncedSearchName, searchQuery, setSearchQuery, setPage]);
 
   // ── Actions ──
   const toggleCategory = useCallback(
-    (cat: string) => {
-      setSelectedCategories((prev) => {
-        const newCats = prev.includes(cat)
-          ? prev.filter((c) => c !== cat)
-          : [...prev, cat];
-        return newCats.length > 0 ? newCats : null;
+    (catName: string) => {
+      setCategoryId((prev) => {
+        const current = prev ? prev.split(",").filter(Boolean) : [];
+        const updated = current.includes(catName)
+          ? current.filter((c) => c !== catName)
+          : [...current, catName];
+        return updated.length > 0 ? updated.join(",") : null;
       });
       setPage(1);
     },
-    [setSelectedCategories, setPage],
+    [setCategoryId, setPage],
   );
 
-  const handleSetMinRating = useCallback(
-    (v: number | null) => {
-      setMinRatingQ(v);
+  const selectedCategories = categoryId
+    ? categoryId.split(",").filter(Boolean)
+    : [];
+
+  const handleSetSortBy = useCallback(
+    (v: string) => {
+      setSortBy(v || null);
       setPage(1);
     },
-    [setMinRatingQ, setPage],
+    [setSortBy, setPage],
+  );
+
+  const handleSetSortOrder = useCallback(
+    (v: string) => {
+      setSortOrder(v || null);
+      setPage(1);
+    },
+    [setSortOrder, setPage],
   );
 
   const resetFilters = useCallback(() => {
     setLocalSearchName("");
-    setLocalLocation("");
-    setLocalMinPrice("");
-    setLocalMaxPrice("");
     setSearchQuery(null);
-    setDestination(null);
-    setSelectedCategories(null);
-    setMinPriceQ(null);
-    setMaxPriceQ(null);
-    setMinRatingQ(null);
+    setCategoryId(null);
     setSortBy(null);
     setSortOrder(null);
+    setDestination(null);
     setPage(1);
   }, [
     setSearchQuery,
-    setDestination,
-    setSelectedCategories,
-    setMinPriceQ,
-    setMaxPriceQ,
-    setMinRatingQ,
+    setCategoryId,
     setSortBy,
     setSortOrder,
+    setDestination,
     setPage,
   ]);
 
   return {
-    // URL-synced values
-    destination,
+    // Values for API query params
     searchQuery,
+    categoryId,
     selectedCategories,
     sortBy,
     sortOrder,
-    minPrice: minPriceQ,
-    maxPrice: maxPriceQ,
-    minRating: minRatingQ,
     page,
+    destination,
 
     // Local input state
     localSearchName,
-    localLocation,
-    localMinPrice,
-    localMaxPrice,
 
     // Setters
     setLocalSearchName,
-    setLocalLocation,
-    setLocalMinPrice,
-    setLocalMaxPrice,
-    setMinRating: handleSetMinRating,
-    setSortBy,
-    setSortOrder,
-    setPage: (v: number) => setPage(v),
     toggleCategory,
+    setSortBy: handleSetSortBy,
+    setSortOrder: handleSetSortOrder,
+    setPage: (v: number) => setPage(v),
     resetFilters,
   };
 }

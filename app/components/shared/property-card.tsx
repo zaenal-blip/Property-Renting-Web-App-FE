@@ -2,11 +2,23 @@ import { Link } from "react-router";
 import { Star, Heart, MapPin } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { cn, formatPrice } from "~/lib/utils";
-import type { Property } from "~/types/property";
 import { useState } from "react";
 
+interface PropertyCardProperty {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  category: { id: string; name: string };
+  images: { id: string; propertyId: string; imageUrl: string }[];
+  lowestPrice: number;
+  isAvailable: boolean;
+  averageRating: number;
+  reviewCount: number;
+}
+
 interface PropertyCardProps {
-  property: Property;
+  property: PropertyCardProperty;
 }
 
 export function PropertyCard({ property }: PropertyCardProps) {
@@ -60,7 +72,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <div className="mb-3 flex items-center gap-1">
           <Star className="h-4 w-4 fill-warning text-warning" />
           <span className="text-sm font-medium text-foreground">
-            {property.rating}
+            {property.averageRating > 0 ? property.averageRating : "-"}
           </span>
           <span className="text-xs text-muted-foreground">
             ({property.reviewCount} reviews)
@@ -69,9 +81,13 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <div className="flex items-end justify-between">
           <div>
             <span className="text-lg font-bold text-primary">
-              {formatPrice(property.lowestPrice)}
+              {property.lowestPrice > 0
+                ? formatPrice(property.lowestPrice)
+                : "Contact"}
             </span>
-            <span className="text-xs text-muted-foreground">/malam</span>
+            {property.lowestPrice > 0 && (
+              <span className="text-xs text-muted-foreground">/malam</span>
+            )}
           </div>
           <Badge variant="outline" className="text-xs capitalize">
             {property.category.name}

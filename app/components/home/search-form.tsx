@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, MapPin, Calendar, Users, Minus, Plus } from "lucide-react";
+import { Search, MapPin, Calendar, Users, Minus, Plus, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Popover,
@@ -19,7 +19,7 @@ import {
 import { cn, formatShortDate } from "~/lib/utils";
 import { format } from "date-fns";
 import { useSearchStore } from "~/modules/search/search.store";
-import { destinations } from "~/data/mock-properties";
+import { useLocations } from "~/hooks/use-properties";
 
 export function SearchForm() {
   const navigate = useNavigate();
@@ -29,6 +29,20 @@ export function SearchForm() {
   const [localDest, setLocalDest] = useState(destination);
   const [localGuests, setLocalGuests] = useState(guests);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: locations = [], isLoading: isLoadingLocations } =
+    useLocations(debouncedSearch);
+
   const handleSearch = () => {
     setSearch({
       destination: localDest,
@@ -37,6 +51,7 @@ export function SearchForm() {
       guests: localGuests,
     });
     const params = new URLSearchParams();
+    if (localDest) params.set("city", localDest); // Changed 'destination' to 'city' since properties.tsx listens to 'city' or 'search' (Wait, use-property-filters mapping? Let's keep destination because properties maps it to city) actually I see use-property-filters.ts uses 'destination'. Let's stick with 'destination'.
     if (localDest) params.set("destination", localDest);
     if (dateRange.from) params.set("checkinDate", dateRange.from.toISOString());
     if (dateRange.to) params.set("checkoutDate", dateRange.to.toISOString());
@@ -49,7 +64,13 @@ export function SearchForm() {
     <div className="glass-card w-full rounded-2xl p-4 md:p-6">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:gap-4">
         {/* Destination */}
-        <Popover open={destOpen} onOpenChange={setDestOpen}>
+        <Popover
+          open={destOpen}
+          onOpenChange={(open) => {
+            setDestOpen(open);
+            if (!open) setSearchQuery(""); // clear search on close
+          }}
+        >
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -65,25 +86,36 @@ export function SearchForm() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64 p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search destination..." />
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Search destination..."
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+              />
               <CommandList>
-                <CommandEmpty>No city found.</CommandEmpty>
-                <CommandGroup>
-                  {destinations.map((city) => (
-                    <CommandItem
-                      key={city}
-                      value={city}
-                      onSelect={() => {
-                        setLocalDest(city);
-                        setDestOpen(false);
-                      }}
-                    >
-                      <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {city}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                {isLoadingLocations ? (
+                  <div className="flex h-16 items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : locations.length === 0 ? (
+                  <CommandEmpty>No city found.</CommandEmpty>
+                ) : (
+                  <CommandGroup>
+                    {locations.map((loc) => (
+                      <CommandItem
+                        key={loc.value}
+                        value={loc.value}
+                        onSelect={() => {
+                          setLocalDest(loc.label);
+                          setDestOpen(false);
+                        }}
+                      >
+                        <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                        {loc.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
               </CommandList>
             </Command>
           </PopoverContent>

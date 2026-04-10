@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 import {
   Star,
   MapPin,
@@ -9,11 +10,11 @@ import {
   Waves,
   Dumbbell,
   Heart,
+  Loader2,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
-import { mockProperties } from "~/data/mock-properties";
 import { formatPrice } from "~/lib/utils";
 import { ImageGallery } from "~/components/property/image-gallery";
 import { RoomCard } from "~/components/property/room-card";
@@ -21,25 +22,47 @@ import { ReviewSection } from "~/components/property/review-section";
 import { toast } from "sonner";
 import type { Room } from "~/types/property";
 import { useBookingStore } from "~/modules/booking/booking.store";
+import { fetchPropertyBySlug, type PropertyDetail } from "~/lib/property.api";
 
-const amenityIcons: Record<string, React.ElementType> = {
-  WiFi: Wifi,
-  Parking: Car,
-  Restaurant: UtensilsCrossed,
-  Pool: Waves,
-  "Infinity Pool": Waves,
-  "Private Pool": Waves,
-  Gym: Dumbbell,
-  Spa: Heart,
-};
-
-const PropertyDetail = () => {
+const PropertyDetailPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const setBooking = useBookingStore((s) => s.setBooking);
-  const property = mockProperties.find((p) => p.slug === slug);
 
-  if (!property) {
+  const [property, setProperty] = useState<PropertyDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    setLoading(true);
+    setError(false);
+
+    fetchPropertyBySlug(slug)
+      .then((data) => {
+        setProperty(data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch property:", err);
+        setError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [slug]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Error / Not found state
+  if (error || !property) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
         <div className="text-center">
@@ -54,10 +77,16 @@ const PropertyDetail = () => {
     );
   }
 
+  // Compute derived values from API data
+  const lowestPrice =
+    property.rooms.length > 0
+      ? Math.min(...property.rooms.map((r) => Number(r.basePrice)))
+      : 0;
+
   const handleBook = (room: Room) => {
     setBooking({ selectedRoom: room });
     toast.success("Room selected", {
-      description: `${room.name} — ${formatPrice(room.basePrice)}/malam`,
+      description: `${room.name} — ${formatPrice(Number(room.basePrice))}/malam`,
     });
 
     navigate(`/booking/${property.id}`);
@@ -85,14 +114,6 @@ const PropertyDetail = () => {
               <Badge variant="outline" className="capitalize">
                 {property.category.name}
               </Badge>
-
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-warning text-warning" />
-                <span className="text-sm font-medium">{property.rating}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({property.reviewCount} reviews)
-                </span>
-              </div>
             </div>
             <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
               {property.name}
@@ -102,6 +123,31 @@ const PropertyDetail = () => {
               {property.address}, {property.city}
             </div>
           </div>
+
+          <Separator />
+
+          {/* Tenant / Host Info */}
+          {property.tenant && (
+            <div className="flex items-center gap-3">
+              {property.tenant.profilePicture ? (
+                <img
+                  src={property.tenant.profilePicture}
+                  alt={property.tenant.name}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                  {property.tenant.name.charAt(0)}
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Hosted by</p>
+                <p className="text-sm font-medium text-foreground">
+                  {property.tenant.name}
+                </p>
+              </div>
+            </div>
+          )}
 
           <Separator />
 
@@ -117,29 +163,6 @@ const PropertyDetail = () => {
 
           <Separator />
 
-          {/* Amenities */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Amenities
-            </h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {property.amenities.map((amenity) => {
-                const Icon = amenityIcons[amenity] || Wifi;
-                return (
-                  <div
-                    key={amenity}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2"
-                  >
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-foreground">{amenity}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Separator />
-
           {/* Rooms */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -147,7 +170,16 @@ const PropertyDetail = () => {
             </h2>
             <div className="space-y-4">
               {property.rooms.map((room) => (
-                <RoomCard key={room.id} room={room} onBook={handleBook} />
+                <RoomCard
+                  key={room.id}
+                  room={{
+                    ...room,
+                    basePrice: Number(room.basePrice),
+                    availability: [],
+                    peakSeasonRates: [],
+                  }}
+                  onBook={handleBook}
+                />
               ))}
             </div>
           </div>
@@ -155,11 +187,7 @@ const PropertyDetail = () => {
           <Separator />
 
           {/* Reviews */}
-          <ReviewSection
-            propertyId={property.id}
-            rating={property.rating}
-            reviewCount={property.reviewCount}
-          />
+          <ReviewSection propertyId={property.id} rating={0} reviewCount={0} />
         </div>
 
         {/* Sticky Booking Card */}
@@ -171,7 +199,7 @@ const PropertyDetail = () => {
               </span>
               <div className="flex items-end gap-1">
                 <span className="text-2xl font-bold text-primary">
-                  {formatPrice(property.lowestPrice)}
+                  {formatPrice(lowestPrice)}
                 </span>
                 <span className="mb-1 text-sm text-muted-foreground">
                   /malam
@@ -183,12 +211,18 @@ const PropertyDetail = () => {
               className="w-full"
               size="lg"
               onClick={() => {
-                const availableRoom = property.rooms[0]; // Simplified for now since Room interface changed
-                if (availableRoom) handleBook(availableRoom);
+                const availableRoom = property.rooms[0];
+                if (availableRoom)
+                  handleBook({
+                    ...availableRoom,
+                    basePrice: Number(availableRoom.basePrice),
+                    availability: [],
+                    peakSeasonRates: [],
+                  });
               }}
-              disabled={!property.isAvailable}
+              disabled={property.rooms.length === 0}
             >
-              {property.isAvailable ? "Book Now" : "Not Available"}
+              {property.rooms.length > 0 ? "Book Now" : "Not Available"}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Free cancellation available
@@ -200,4 +234,4 @@ const PropertyDetail = () => {
   );
 };
 
-export default PropertyDetail;
+export default PropertyDetailPage;

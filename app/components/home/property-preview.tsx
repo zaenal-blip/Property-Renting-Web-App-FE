@@ -1,12 +1,18 @@
 import { Link } from "react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { PropertyCard } from "~/components/shared/property-card";
 import { motion } from "framer-motion";
-import { mockProperties } from "~/data/mock-properties";
+import { useProperties } from "~/hooks/use-properties";
 
 export function PropertyPreview() {
-  const featured = mockProperties.slice(0, 6);
+  const { data, isLoading } = useProperties({
+    take: 6,
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  });
+
+  const properties = data?.data || [];
 
   return (
     <section className="container mx-auto py-12 px-4 md:py-16">
@@ -31,19 +37,28 @@ export function PropertyPreview() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {featured.map((property, i) => (
-          <motion.div
-            key={property.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-          >
-            <PropertyCard property={property} />
-          </motion.div>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16 gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">
+            Loading properties...
+          </span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {properties.map((property, i) => (
+            <motion.div
+              key={property.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+            >
+              <PropertyCard property={property} />
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-8 text-center md:hidden">
         <Button variant="outline" className="gap-1" asChild>
