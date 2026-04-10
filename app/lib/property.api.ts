@@ -89,7 +89,46 @@ export async function fetchLocations(
 ): Promise<PropertyLocation[]> {
   const { data } = await axiosInstance.get<PropertyLocation[]>(
     "/properties/locations",
-    { params: search ? { search } : undefined }
+    { params: search ? { search } : undefined },
+  );
+  return data;
+}
+
+export interface PropertyDetailRoom {
+  id: string;
+  propertyId: string;
+  name: string;
+  description: string;
+  capacity: number;
+  basePrice: number | string;
+  createdAt: string;
+  images: { id: string; roomId: string; imageUrl: string }[];
+}
+
+export interface PropertyDetail {
+  id: string;
+  tenantId: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  description: string;
+  address: string;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: string; name: string; createdAt: string };
+  images: { id: string; propertyId: string; imageUrl: string }[];
+  rooms: PropertyDetailRoom[];
+  tenant: { name: string; profilePicture: string | null };
+}
+
+export async function fetchPropertyBySlug(
+  slug: string,
+): Promise<PropertyDetail> {
+  const { data } = await axiosInstance.get<PropertyDetail>(
+    `/properties/${slug}`,
   );
   return data;
 }

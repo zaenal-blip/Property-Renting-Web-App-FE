@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Building2,
+  FolderOpen,
   ClipboardList,
   Star,
   Settings,
@@ -32,6 +33,11 @@ const sidebarNav = [
     label: "Properties",
     href: "/tenant/dashboard/properties",
     icon: Building2,
+  },
+  {
+    label: "Categories",
+    href: "/tenant/dashboard/categories",
+    icon: FolderOpen,
   },
   {
     label: "Orders",
