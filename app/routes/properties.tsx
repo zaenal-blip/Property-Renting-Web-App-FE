@@ -18,7 +18,7 @@ import { ITEMS_PER_PAGE } from "~/types/property";
 const PropertiesPage = () => {
   const filters = usePropertyFilters();
 
-  // ── Build API query params (supports multiple categories via comma-separated categoryId) ──
+  // ── Build API query params ──
   const queryParams = {
     page: filters.page,
     take: ITEMS_PER_PAGE,
@@ -35,8 +35,12 @@ const PropertiesPage = () => {
     capacity: filters.capacity || undefined,
   };
 
-  const { data: response, isLoading, isError, error } =
-    useProperties(queryParams);
+  const {
+    data: response,
+    isLoading,
+    isError,
+    error,
+  } = useProperties(queryParams);
 
   const properties = response?.data || [];
   const meta = response?.meta;
@@ -64,107 +68,109 @@ const PropertiesPage = () => {
   return (
     <div className="container mx-auto px-4 py-24 md:py-28">
       {/* Page Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground md:text-3xl">
           {filters.destination
             ? `Properties in ${filters.destination}`
             : "All Properties"}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isLoading
-            ? "Loading properties..."
-            : `Showing ${properties.length} of ${meta?.total || 0} properties`}
+        <p className="mt-1 text-sm text-muted-foreground font-medium">
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Searching properties...
+            </span>
+          ) : (
+            `Showing ${properties.length} of ${meta?.total || 0} properties`
+          )}
         </p>
       </div>
 
       <div className="flex gap-8">
         {/* Desktop Sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-32 rounded-2xl border border-border bg-card p-5">
-            <h2 className="mb-4 text-base font-semibold text-card-foreground">
+          <div className="sticky top-32 rounded-3xl border border-border/50 bg-card/50 p-6 backdrop-blur-sm shadow-sm">
+            <h2 className="mb-5 text-base font-semibold text-foreground">
               Filters
             </h2>
             <FilterContent {...filterProps} />
           </div>
         </aside>
 
-        {/* Main Grid */}
+        {/* Main Content Area */}
         <div className="flex-1">
           {/* Mobile Filter Button */}
-          <div className="mb-4 lg:hidden">
+          <div className="mb-6 lg:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 rounded-full px-5">
                   <SlidersHorizontal className="h-4 w-4" />
-                  Filters
+                  Apply Filters
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="bottom"
-                className="max-h-[80vh] overflow-y-auto rounded-t-2xl"
+                className="max-h-[85vh] overflow-y-auto rounded-t-[2.5rem] p-0"
               >
-                <SheetHeader>
-                  <SheetTitle>Filters</SheetTitle>
+                <SheetHeader className="p-6 pb-0">
+                  <SheetTitle className="text-xl">Filters</SheetTitle>
                 </SheetHeader>
-                <div className="px-4 py-4 pb-6">
+                <div className="px-6 py-6 pb-12">
                   <FilterContent {...filterProps} />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                Loading properties...
-              </p>
-            </div>
-          )}
-
-          {/* Error State */}
-          {isError && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <p className="text-sm text-destructive">
-                Failed to load properties.{" "}
-                {(error as Error)?.message || "Please try again."}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-              >
-                Retry
-              </Button>
-            </div>
-          )}
-
-          {/* Property Grid / Empty State */}
-          {!isLoading && !isError && (
-            <>
-              {properties.length > 0 ? (
-                <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
-                  {properties.map((property) => (
-                    <PropertyCard key={property.id} property={property} />
-                  ))}
+          {/* Data Presentation Layer */}
+          <div className="min-h-[40vh]">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <div className="relative">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+                  <Loader2 className="h-10 w-10 animate-spin text-primary absolute inset-0 [animation-delay:-0.3s]" />
                 </div>
-              ) : (
-                <PropertyEmptyState onReset={filters.resetFilters} />
-              )}
-            </>
+                <p className="text-sm font-medium text-muted-foreground animate-pulse">
+                  Finding the best stays for you...
+                </p>
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-20 rounded-3xl border-2 border-dashed border-muted/20 bg-muted/5">
+                <p className="text-sm font-medium text-destructive mb-4">
+                  Failed to load properties: {(error as Error)?.message || "Internal Error"}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => window.location.reload()}
+                >
+                  Try Refreshing
+                </Button>
+              </div>
+            ) : properties.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {properties.map((property) => (
+                  <PropertyCard key={property.id} property={property} />
+                ))}
+              </div>
+            ) : (
+              <PropertyEmptyState onReset={filters.resetFilters} />
+            )}
+          </div>
+
+          {/* Pagination Layer */}
+          {!isLoading && properties.length > 0 && totalPages > 1 && (
+            <div className="mt-12 pt-8 border-t border-border/50">
+              <PropertyPagination
+                page={filters.page}
+                totalPages={totalPages}
+                onPageChange={filters.setPage}
+              />
+            </div>
           )}
         </div>
       </div>
-
-      {/* Pagination */}
-      {!isLoading && properties.length > 0 && totalPages > 1 && (
-        <PropertyPagination
-          page={filters.page}
-          totalPages={totalPages}
-          onPageChange={filters.setPage}
-        />
-      )}
     </div>
   );
 };
