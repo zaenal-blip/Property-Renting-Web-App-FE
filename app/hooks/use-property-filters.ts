@@ -105,11 +105,12 @@ export function usePropertyFilters() {
   // ── Actions ──
   const toggleCategory = useCallback(
     (catName: string) => {
+      const normalized = catName.toLowerCase();
       setCategoryId((prev) => {
         const current = prev ? prev.split(",").filter(Boolean) : [];
-        const updated = current.includes(catName)
-          ? current.filter((c) => c !== catName)
-          : [...current, catName];
+        const updated = current.includes(normalized)
+          ? current.filter((c) => c !== normalized)
+          : [...current, normalized];
         return updated.length > 0 ? updated.join(",") : null;
       });
       setPage(1);
@@ -118,7 +119,7 @@ export function usePropertyFilters() {
   );
 
   const selectedCategories = categoryId
-    ? categoryId.split(",").filter(Boolean)
+    ? categoryId.split(",").filter(Boolean).map((c) => c.toLowerCase())
     : [];
 
   const handleSetSortBy = useCallback(

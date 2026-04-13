@@ -182,7 +182,7 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-muted/30">
+    <div className="h-screen flex bg-muted/30 overflow-hidden">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
@@ -232,7 +232,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
