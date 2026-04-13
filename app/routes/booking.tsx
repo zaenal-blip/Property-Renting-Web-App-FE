@@ -66,12 +66,12 @@ export default function BookingPage() {
           : "Please upload your payment proof.",
       });
 
-      clearBooking();
-      
       if (paymentMethod === "PAYMENT_GATEWAY" && invoiceUrl) {
+         clearBooking();
          window.location.href = invoiceUrl;
       } else {
          navigate(`/user/order-detail/${resId}`);
+         clearBooking();
       }
     } catch (error: any) {
       console.error("Booking error:", error);
