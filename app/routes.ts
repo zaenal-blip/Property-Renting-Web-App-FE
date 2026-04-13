@@ -14,10 +14,19 @@ export default [
 
     route("/properties", "routes/properties.tsx"),
     route("/properties/:slug", "routes/property-detail.tsx"),
+    route("/booking/:id", "routes/booking.tsx"),
 
     route("/about", "routes/about.tsx"),
     route("/terms", "routes/terms.tsx"),
     route("/privacy", "routes/privacy.tsx"),
+
+    route("/user/bookings", "routes/user/orders.tsx"),
+    route("/user/order-detail/:id", "routes/user/order-detail.tsx"),
+
+    // Tenant Routes
+    route("/tenant/orders", "routes/tenant/orders.tsx"),
+    route("/tenant/reports", "routes/tenant/reports.tsx"),
+    route("/tenant/reviews", "routes/tenant/reviews.tsx"),
   ]),
 
   // =====================

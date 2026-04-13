@@ -41,7 +41,8 @@ export function RoomCard({ room, onBook }: RoomCardProps) {
             <span className="text-xs text-muted-foreground">/malam</span>
           </div>
           {/* Simplified for mock: checking if any availability or defaulting to true if not specified */}
-          {room.availability.length === 0 ||
+          {!room.availability ||
+          room.availability.length === 0 ||
           room.availability.some((a) => a.isAvailable) ? (
             <Button variant="cta" size="sm" onClick={() => onBook(room)}>
               Book Now

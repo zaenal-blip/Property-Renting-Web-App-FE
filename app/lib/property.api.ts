@@ -3,7 +3,7 @@ import { axiosInstance } from "~/lib/axios";
 export interface PropertyQueryParams {
   search?: string;
   categoryId?: string;
-  city?: string;
+  destination?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   page?: number;
@@ -56,7 +56,7 @@ export async function fetchProperties(
 
   if (params.search) cleanParams.search = params.search;
   if (params.categoryId) cleanParams.categoryId = params.categoryId;
-  if (params.city) cleanParams.city = params.city;
+  if (params.destination) cleanParams.destination = params.destination;
   if (params.sortBy) cleanParams.sortBy = params.sortBy;
   if (params.sortOrder) cleanParams.sortOrder = params.sortOrder;
   if (params.page) cleanParams.page = String(params.page);
@@ -126,9 +126,11 @@ export interface PropertyDetail {
 
 export async function fetchPropertyBySlug(
   slug: string,
+  params?: { startDate?: string; endDate?: string }
 ): Promise<PropertyDetail> {
   const { data } = await axiosInstance.get<PropertyDetail>(
     `/properties/${slug}`,
+    { params }
   );
   return data;
 }

@@ -9,6 +9,12 @@ import { useCategories } from "~/hooks/use-properties";
 export interface FilterContentProps {
   searchName: string;
   setSearchName: (v: string) => void;
+  startDate: string | "";
+  setStartDate: (v: string | "") => void;
+  endDate: string | "";
+  setEndDate: (v: string | "") => void;
+  capacity: number | "";
+  setCapacity: (v: number | "") => void;
   selectedCategories: string[];
   toggleCategory: (c: string) => void;
   sortBy: string;
@@ -21,6 +27,12 @@ export interface FilterContentProps {
 export function FilterContent({
   searchName,
   setSearchName,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
+  capacity,
+  setCapacity,
   selectedCategories,
   toggleCategory,
   sortBy,
@@ -48,6 +60,39 @@ export function FilterContent({
             className="pl-9"
           />
         </div>
+      </div>
+
+      {/* Date Range */}
+      <div>
+        <Label className="mb-3 block text-sm font-medium">
+          Availability Dates
+        </Label>
+        <div className="flex flex-col gap-2">
+          <Input
+            type="date"
+            value={startDate || ""}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={endDate || ""}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Guests (Capacity) */}
+      <div>
+        <Label className="mb-3 block text-sm font-medium">Guests</Label>
+        <Input
+          type="number"
+          placeholder="Min capacity..."
+          min={1}
+          value={capacity}
+          onChange={(e) =>
+            setCapacity(e.target.value ? Number(e.target.value) : "")
+          }
+        />
       </div>
 
       {/* Category */}

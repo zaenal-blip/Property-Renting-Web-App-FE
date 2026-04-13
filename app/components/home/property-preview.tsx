@@ -6,13 +6,13 @@ import { motion } from "framer-motion";
 import { useProperties } from "~/hooks/use-properties";
 
 export function PropertyPreview() {
-  const { data, isLoading } = useProperties({
+  const { data: response, isLoading } = useProperties({
     take: 6,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
 
-  const properties = data?.data || [];
+  const featured = response?.data || [];
 
   return (
     <section className="container mx-auto py-12 px-4 md:py-16">
@@ -37,16 +37,17 @@ export function PropertyPreview() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-16 gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">
-            Loading properties...
-          </span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {properties.map((property, i) => (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {isLoading ? (
+          // Simple loading skeletons
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[300px] w-full animate-pulse rounded-2xl bg-muted"
+            />
+          ))
+        ) : featured.length > 0 ? (
+          featured.map((property: any, i: number) => (
             <motion.div
               key={property.id}
               initial={{ opacity: 0, y: 20 }}
@@ -56,9 +57,13 @@ export function PropertyPreview() {
             >
               <PropertyCard property={property} />
             </motion.div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="col-span-full py-12 text-center text-muted-foreground">
+            No properties found
+          </div>
+        )}
+      </div>
 
       <div className="mt-8 text-center md:hidden">
         <Button variant="outline" className="gap-1" asChild>

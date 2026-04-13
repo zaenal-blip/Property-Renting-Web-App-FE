@@ -3,6 +3,7 @@ import {
   fetchProperties,
   fetchCategories,
   fetchLocations,
+  fetchPropertyBySlug,
   type PropertyQueryParams,
 } from "~/lib/property.api";
 
@@ -13,6 +14,23 @@ export function useProperties(params: PropertyQueryParams) {
   return useQuery({
     queryKey: ["properties", params],
     queryFn: () => fetchProperties(params),
+  });
+}
+
+/** Alias kept for backward compatibility with feature2 code */
+export const usePropertiesQuery = useProperties;
+
+/**
+ * React Query hook to fetch a single property by slug with optional date filtering.
+ */
+export function usePropertyDetailQuery(
+  slug: string,
+  dates?: { startDate?: string; endDate?: string },
+) {
+  return useQuery({
+    queryKey: ["properties", slug, dates],
+    queryFn: () => fetchPropertyBySlug(slug, dates),
+    enabled: !!slug,
   });
 }
 

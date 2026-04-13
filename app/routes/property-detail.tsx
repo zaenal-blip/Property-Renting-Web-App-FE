@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
-import { useEffect, useState } from "react";
 import {
   Star,
   MapPin,
@@ -11,6 +11,7 @@ import {
   Dumbbell,
   Heart,
   Loader2,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -22,38 +23,34 @@ import { ReviewSection } from "~/components/property/review-section";
 import { toast } from "sonner";
 import type { Room } from "~/types/property";
 import { useBookingStore } from "~/modules/booking/booking.store";
-import { fetchPropertyBySlug, type PropertyDetail } from "~/lib/property.api";
+import { usePropertyDetailQuery } from "~/hooks/use-properties";
+
+const amenityIcons: Record<string, any> = {
+  WiFi: Wifi,
+  Parking: Car,
+  Restaurant: UtensilsCrossed,
+  Pool: Waves,
+  Gym: Dumbbell,
+  Spa: Heart,
+};
 
 const PropertyDetailPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const setBooking = useBookingStore((s) => s.setBooking);
+  const [checkin, setCheckin] = useState<string>("");
+  const [checkout, setCheckout] = useState<string>("");
 
-  const [property, setProperty] = useState<PropertyDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: property,
+    isLoading,
+    isError,
+  } = usePropertyDetailQuery(slug || "", {
+    startDate: checkin || undefined,
+    endDate: checkout || undefined,
+  });
 
-  useEffect(() => {
-    if (!slug) return;
-
-    setLoading(true);
-    setError(false);
-
-    fetchPropertyBySlug(slug)
-      .then((data) => {
-        setProperty(data);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch property:", err);
-        setError(true);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [slug]);
-
-  // Loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -61,8 +58,7 @@ const PropertyDetailPage = () => {
     );
   }
 
-  // Error / Not found state
-  if (error || !property) {
+  if (isError || !property) {
     return (
       <div className="container mx-auto flex min-h-[60vh] items-center justify-center py-24">
         <div className="text-center">
@@ -78,13 +74,37 @@ const PropertyDetailPage = () => {
   }
 
   // Compute derived values from API data
+  const rooms = property.rooms || [];
   const lowestPrice =
-    property.rooms.length > 0
-      ? Math.min(...property.rooms.map((r) => Number(r.basePrice)))
+    rooms.length > 0
+      ? Math.min(...rooms.map((r) => Number(r.basePrice)))
       : 0;
 
+  // Group rooms by name to show "count"
+  const groupedRooms = rooms.reduce((acc: any, room) => {
+    const key = `${room.name}-${room.capacity}-${room.basePrice}`;
+    if (!acc[key]) {
+      acc[key] = { ...room, count: 1 };
+    } else {
+      acc[key].count += 1;
+    }
+    return acc;
+  }, {});
+
+  const displayRooms = Object.values(groupedRooms);
+
   const handleBook = (room: Room) => {
-    setBooking({ selectedRoom: room });
+    if (!checkin || !checkout) {
+      toast.error("Please select dates first");
+      // Scroll to date selection
+      document.getElementById("date-selection")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    setBooking({ 
+      selectedRoom: room,
+      checkinDate: checkin,
+      checkoutDate: checkout,
+    });
     toast.success("Room selected", {
       description: `${room.name} — ${formatPrice(Number(room.basePrice))}/malam`,
     });
@@ -102,7 +122,7 @@ const PropertyDetailPage = () => {
       </Button>
 
       <ImageGallery
-        images={property.images.map((img) => img.imageUrl)}
+        images={property.images?.map((img: any) => img.imageUrl) || []}
         name={property.name}
       />
 
@@ -163,24 +183,81 @@ const PropertyDetailPage = () => {
 
           <Separator />
 
+          {/* Date Selection */}
+          <div id="date-selection" className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+             <h2 className="mb-4 text-lg font-semibold text-foreground flex items-center gap-2">
+               Select Dates to See Availability
+             </h2>
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+               <div className="space-y-2">
+                 <label className="text-sm font-medium flex items-center gap-1.5">
+                   <CalendarIcon className="h-4 w-4 text-primary" />
+                   Check-in
+                 </label>
+                 <div className="relative">
+                   <input 
+                     type="date" 
+                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:light] dark:[color-scheme:dark]"
+                     style={{ WebkitAppearance: 'none' }}
+                     value={checkin}
+                     onChange={(e) => setCheckin(e.target.value)}
+                     min={new Date().toISOString().split('T')[0]}
+                   />
+                 </div>
+               </div>
+               <div className="space-y-2">
+                 <label className="text-sm font-medium flex items-center gap-1.5">
+                   <CalendarIcon className="h-4 w-4 text-primary" />
+                   Check-out
+                 </label>
+                 <div className="relative">
+                   <input 
+                     type="date" 
+                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:light] dark:[color-scheme:dark]"
+                     style={{ WebkitAppearance: 'none' }}
+                     value={checkout}
+                     onChange={(e) => setCheckout(e.target.value)}
+                     min={checkin || new Date().toISOString().split('T')[0]}
+                   />
+                 </div>
+               </div>
+             </div>
+          </div>
+
+          <Separator />
+
           {/* Rooms */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Available Rooms
+              {checkin && checkout 
+                ? `Available Rooms for your dates` 
+                : "All Room Types (Select dates to confirm availability)"}
             </h2>
             <div className="space-y-4">
-              {property.rooms.map((room) => (
-                <RoomCard
-                  key={room.id}
-                  room={{
-                    ...room,
-                    basePrice: Number(room.basePrice),
-                    availability: [],
-                    peakSeasonRates: [],
-                  }}
-                  onBook={handleBook}
-                />
-              ))}
+              {displayRooms.length > 0 ? (
+                displayRooms.map((room: any) => (
+                  <div key={room.id} className="relative">
+                    <RoomCard
+                      room={{
+                        ...room,
+                        basePrice: Number(room.basePrice),
+                        availability: [],
+                        peakSeasonRates: [],
+                      }}
+                      onBook={handleBook}
+                    />
+                    {room.count > 1 && (
+                      <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
+                        {room.count} rooms left
+                      </Badge>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                  No rooms available for the selected dates.
+                </div>
+              )}
             </div>
           </div>
 

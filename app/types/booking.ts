@@ -15,6 +15,9 @@ export interface Reservation {
   status: ReservationStatus;
   createdAt: string;
   // Included relations/aggregates for UI
+  property?: any; // Simplified for now, but will have images
+  reservationRooms?: any[];
+  user?: any;
   payment?: Payment;
 }
 

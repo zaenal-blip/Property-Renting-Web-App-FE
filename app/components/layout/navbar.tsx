@@ -216,7 +216,7 @@ export function Navbar() {
                         <button
                           key={dest.value}
                           onClick={() => {
-                            navigate(`/properties?city=${dest.value}`);
+                            navigate(`/properties?destination=${dest.value}`);
                             setDestOpen(false);
                             setDestSearch("");
                           }}
@@ -417,7 +417,7 @@ export function Navbar() {
             ) : (
               <>
                 <Button
-                  variant={isSolid ? "outline" : "hero-outline"}
+                  variant="outline"
                   size="sm"
                   onClick={() => navigate("/login")}
                 >
@@ -522,7 +522,7 @@ export function Navbar() {
                   ) : locations.map((dest) => (
                     <Link
                       key={dest.value}
-                      to={`/properties?city=${dest.value}`}
+                      to={`/properties?destination=${dest.value}`}
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
                     >
