@@ -126,9 +126,11 @@ export interface PropertyDetail {
 
 export async function fetchPropertyBySlug(
   slug: string,
+  params?: { startDate?: string; endDate?: string }
 ): Promise<PropertyDetail> {
   const { data } = await axiosInstance.get<PropertyDetail>(
     `/properties/${slug}`,
+    { params }
   );
   return data;
 }

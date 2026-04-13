@@ -27,6 +27,14 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { toast } from "sonner";
 import { axiosInstance } from "~/lib/axios";
 import { formatPrice } from "~/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "~/components/ui/dialog";
 import type { Reservation, ReservationStatus } from "~/types/booking";
 
 // ─── STATUS CONFIG ───────────────────────────────────────────────────
@@ -134,10 +142,11 @@ export default function OrderDetailPage() {
     },
   });
 
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
   const handleCancel = () => {
-    if (!confirm("Are you sure you want to cancel this reservation? This cannot be undone."))
-      return;
     cancelMutation.mutate();
+    setShowCancelDialog(false);
   };
 
   // ─── Helpers ───────────────────────────────────────────────────────
@@ -436,8 +445,15 @@ export default function OrderDetailPage() {
                                 toast.success(
                                   "Proof uploaded successfully! Waiting for tenant confirmation.",
                                 );
-                                queryClient.invalidateQueries({
+                                await queryClient.invalidateQueries({
                                   queryKey: ["reservation", id],
+                                });
+                                // Force a refetch to be absolutely sure the UI updates
+                                queryClient.refetchQueries({
+                                  queryKey: ["reservation", id],
+                                });
+                                queryClient.invalidateQueries({
+                                  queryKey: ["user-reservations"],
                                 });
                               } catch (err) {
                                 toast.dismiss();
@@ -517,7 +533,7 @@ export default function OrderDetailPage() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={handleCancel}
+                    onClick={() => setShowCancelDialog(true)}
                     disabled={cancelMutation.isPending}
                     className="shrink-0"
                   >
@@ -527,6 +543,34 @@ export default function OrderDetailPage() {
               </Card>
             )}
           </div>
+
+          {/* ── Cancel Confirmation Dialog ── */}
+          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Cancel Reservation?</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel this reservation? This action cannot be undone and your selected dates will be released.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowCancelDialog(false)}
+                  disabled={cancelMutation.isPending}
+                >
+                  Keep Reservation
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleCancel}
+                  isLoading={cancelMutation.isPending}
+                >
+                  Yes, Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* ── Price Sidebar ── */}
           <div className="lg:col-span-1">

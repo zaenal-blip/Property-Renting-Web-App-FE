@@ -29,13 +29,13 @@ export default function BookingPage() {
   const [localCheckout, setLocalCheckout] = useState(checkoutDate || "");
   const [paymentMethod, setPaymentMethod] = useState<"MANUAL_TRANSFER" | "PAYMENT_GATEWAY">("MANUAL_TRANSFER");
 
-  // Redirect if no room selected
+  // Redirect if no room selected (but not if we just finished booking)
   useEffect(() => {
-    if (!selectedRoom && !propertyLoading) {
+    if (!selectedRoom && !propertyLoading && !isSubmitting) {
       toast.error("Please select a room first");
       navigate(`/properties/${id || ""}`);
     }
-  }, [selectedRoom, propertyLoading, navigate, id]);
+  }, [selectedRoom, propertyLoading, navigate, id, isSubmitting]);
 
   const handleBooking = async () => {
     if (!localCheckin || !localCheckout) {

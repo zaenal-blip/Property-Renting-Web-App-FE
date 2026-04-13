@@ -21,12 +21,15 @@ export function useProperties(params: PropertyQueryParams) {
 export const usePropertiesQuery = useProperties;
 
 /**
- * React Query hook to fetch a single property by slug.
+ * React Query hook to fetch a single property by slug with optional date filtering.
  */
-export function usePropertyDetailQuery(slug: string) {
+export function usePropertyDetailQuery(
+  slug: string,
+  dates?: { startDate?: string; endDate?: string },
+) {
   return useQuery({
-    queryKey: ["properties", slug],
-    queryFn: () => fetchPropertyBySlug(slug),
+    queryKey: ["properties", slug, dates],
+    queryFn: () => fetchPropertyBySlug(slug, dates),
     enabled: !!slug,
   });
 }
