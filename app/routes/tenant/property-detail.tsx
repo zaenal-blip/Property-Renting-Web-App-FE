@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, type SubmitHandler, type Resolver } from "react-hook-form";
@@ -17,7 +17,9 @@ import {
   Calendar,
   TrendingUp,
   Users,
-  DollarSign,
+  X,
+  ImageIcon,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +38,13 @@ import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Separator } from "~/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -47,12 +56,16 @@ import {
 import {
   fetchPropertyById,
   fetchRooms,
+  fetchTenantCategories,
+  updateProperty,
   createRoom,
   updateRoom,
   deleteRoom,
   type Room,
 } from "~/lib/tenant-api";
+import { useAuthStore } from "~/modules/auth/auth.store";
 
+// ─── Schemas ──────────────────────────────────────────
 const roomSchema = z.object({
   name: z.string().min(1, "Room name is required"),
   description: z.string().min(1, "Description is required"),
@@ -62,73 +75,180 @@ const roomSchema = z.object({
 
 type RoomFormValues = z.infer<typeof roomSchema>;
 
+const editPropertySchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
+  categoryId: z.string().min(1, "Category is required"),
+  city: z.string().min(1, "City is required"),
+  address: z.string().min(5, "Address must be at least 5 characters"),
+});
+
+type EditPropertyValues = z.infer<typeof editPropertySchema>;
+
+// ─── Types ──────────────────────────────────────────
+interface ExistingImage {
+  id: string;
+  imageUrl: string;
+}
+
+interface NewImage {
+  file: File;
+  previewUrl: string;
+}
+
+const MAX_IMAGES = 5;
+const MAX_ROOM_IMAGES = 5;
+
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const roomFileInputRef = useRef<HTMLInputElement>(null);
+  const propFileInputRef = useRef<HTMLInputElement>(null);
 
+  // ─── Room Dialog State ──────────────────────────────
   const [showRoomDialog, setShowRoomDialog] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Room | null>(null);
+  const [existingRoomImages, setExistingRoomImages] = useState<ExistingImage[]>(
+    [],
+  );
+  const [newRoomImages, setNewRoomImages] = useState<NewImage[]>([]);
+  const [removedRoomImageIds, setRemovedRoomImageIds] = useState<string[]>([]);
 
-  // Fetch property
+  // ─── Edit Property Dialog State ──────────────────────
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [existingPropImages, setExistingPropImages] = useState<ExistingImage[]>(
+    [],
+  );
+  const [newPropImages, setNewPropImages] = useState<NewImage[]>([]);
+  const [removedPropImageIds, setRemovedPropImageIds] = useState<string[]>([]);
+
+  // ─── Queries ──────────────────────────────────────────
   const { data: property, isLoading } = useQuery({
     queryKey: ["property", id],
     queryFn: () => fetchPropertyById(id!),
     enabled: !!id,
   });
 
-  // Fetch rooms
   const { data: roomsData, isLoading: isLoadingRooms } = useQuery({
     queryKey: ["rooms", id],
     queryFn: () => fetchRooms({ propertyId: id!, take: 100 }),
     enabled: !!id,
   });
 
-  const rooms = roomsData?.data ?? [];
+  const { data: categoriesData } = useQuery({
+    queryKey: ["tenant-categories", user?.id],
+    queryFn: () => fetchTenantCategories({ tenantId: user?.id }),
+    enabled: !!user?.id,
+  });
 
-  // Room form
+  const rooms = roomsData?.data ?? [];
+  const categories = categoriesData?.data ?? [];
+
+  // Ensure current category is in list
+  const categoriesToRender = [...categories];
+  if (
+    property?.category &&
+    !categoriesToRender.find((c) => c.id === property.category.id)
+  ) {
+    categoriesToRender.push(property.category as any);
+  }
+
+  // ─── Room Form ──────────────────────────────────────────
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
+    register: registerRoom,
+    handleSubmit: handleSubmitRoom,
+    reset: resetRoom,
+    formState: { errors: roomErrors },
   } = useForm<RoomFormValues>({
     resolver: zodResolver(roomSchema) as Resolver<RoomFormValues>,
   });
 
-  // Create room mutation
-  const createMutation = useMutation({
-    mutationFn: (data: RoomFormValues) =>
-      createRoom({ propertyId: id!, ...data }),
+  // ─── Edit Property Form ──────────────────────────────────
+  const {
+    register: registerProp,
+    handleSubmit: handleSubmitProp,
+    watch: watchProp,
+    setValue: setValueProp,
+    reset: resetProp,
+    formState: { errors: propErrors },
+  } = useForm<EditPropertyValues>({
+    resolver: zodResolver(editPropertySchema) as Resolver<EditPropertyValues>,
+    defaultValues: {
+      name: "",
+      description: "",
+      categoryId: "",
+      city: "",
+      address: "",
+    },
+  });
+
+  // ─── Room Mutations ──────────────────────────────────────
+  const resetRoomImageState = () => {
+    newRoomImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setExistingRoomImages([]);
+    setNewRoomImages([]);
+    setRemovedRoomImageIds([]);
+  };
+
+  const createRoomMutation = useMutation({
+    mutationFn: (data: RoomFormValues) => {
+      const formData = new FormData();
+      formData.append("propertyId", id!);
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("capacity", String(data.capacity));
+      formData.append("basePrice", String(data.basePrice));
+      for (const img of newRoomImages) {
+        formData.append("images", img.file);
+      }
+      return createRoom(formData);
+    },
     onSuccess: () => {
       toast.success("Room created successfully");
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       queryClient.invalidateQueries({ queryKey: ["tenant-properties"] });
       setShowRoomDialog(false);
-      reset();
+      resetRoom();
+      resetRoomImageState();
     },
     onError: (error: any) =>
       toast.error(error.response?.data?.message || "Failed to create room"),
   });
 
-  // Update room mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: RoomFormValues) =>
-      updateRoom(editingRoom!.id, data),
+  const updateRoomMutation = useMutation({
+    mutationFn: (data: RoomFormValues) => {
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("capacity", String(data.capacity));
+      formData.append("basePrice", String(data.basePrice));
+      if (removedRoomImageIds.length > 0) {
+        formData.append(
+          "removedImageIds",
+          JSON.stringify(removedRoomImageIds),
+        );
+      }
+      for (const img of newRoomImages) {
+        formData.append("images", img.file);
+      }
+      return updateRoom(editingRoom!.id, formData);
+    },
     onSuccess: () => {
       toast.success("Room updated successfully");
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setEditingRoom(null);
       setShowRoomDialog(false);
-      reset();
+      resetRoom();
+      resetRoomImageState();
     },
     onError: (error: any) =>
       toast.error(error.response?.data?.message || "Failed to update room"),
   });
 
-  // Delete room mutation
-  const deleteMutation = useMutation({
+  const deleteRoomMutation = useMutation({
     mutationFn: (roomId: string) => deleteRoom(roomId),
     onSuccess: () => {
       toast.success("Room deleted successfully");
@@ -140,37 +260,183 @@ export default function PropertyDetailPage() {
       toast.error(error.response?.data?.message || "Failed to delete room"),
   });
 
+  // ─── Edit Property Mutation ──────────────────────────────
+  const updatePropMutation = useMutation({
+    mutationFn: (data: EditPropertyValues) => {
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("description", data.description);
+      formData.append("categoryId", data.categoryId);
+      formData.append("city", data.city);
+      formData.append("address", data.address);
+      if (removedPropImageIds.length > 0) {
+        formData.append(
+          "removedImageIds",
+          JSON.stringify(removedPropImageIds),
+        );
+      }
+      for (const img of newPropImages) {
+        formData.append("images", img.file);
+      }
+      return updateProperty(id!, formData);
+    },
+    onSuccess: () => {
+      toast.success("Property updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["tenant-properties"] });
+      queryClient.invalidateQueries({ queryKey: ["property", id] });
+      closeEditDialog();
+    },
+    onError: (error: any) =>
+      toast.error(
+        error.response?.data?.message || "Failed to update property",
+      ),
+  });
+
+  // ─── Room Dialog Handlers ──────────────────────────────
   const onRoomSubmit: SubmitHandler<RoomFormValues> = (data) => {
     if (editingRoom) {
-      updateMutation.mutate(data);
+      updateRoomMutation.mutate(data);
     } else {
-      createMutation.mutate(data);
+      createRoomMutation.mutate(data);
     }
   };
 
   const openEditRoom = (room: Room) => {
     setEditingRoom(room);
-    reset({
+    resetRoom({
       name: room.name,
       description: room.description,
       capacity: room.capacity,
       basePrice: Number(room.basePrice),
     });
+    setExistingRoomImages(
+      (room.images || []).map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+      })),
+    );
+    setNewRoomImages([]);
+    setRemovedRoomImageIds([]);
     setShowRoomDialog(true);
   };
 
   const openNewRoom = () => {
     setEditingRoom(null);
-    reset({ name: "", description: "", capacity: 1, basePrice: 0 });
+    resetRoom({ name: "", description: "", capacity: 1, basePrice: 0 });
+    resetRoomImageState();
     setShowRoomDialog(true);
   };
 
+  // Room image handlers
+  const activeExistingRoomImages = existingRoomImages.filter(
+    (img) => !removedRoomImageIds.includes(img.id),
+  );
+  const totalRoomImageCount =
+    activeExistingRoomImages.length + newRoomImages.length;
+
+  const handleAddRoomImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const available = MAX_ROOM_IMAGES - totalRoomImageCount;
+    if (available <= 0) {
+      toast.error(`Maximum ${MAX_ROOM_IMAGES} images allowed`);
+      e.target.value = "";
+      return;
+    }
+    const filesToAdd = Array.from(files).slice(0, available);
+    if (filesToAdd.some((f) => f.size > 2 * 1024 * 1024)) {
+      toast.error("Each image must be less than 2MB");
+      e.target.value = "";
+      return;
+    }
+    setNewRoomImages((prev) => [
+      ...prev,
+      ...filesToAdd.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ]);
+    e.target.value = "";
+  };
+
+  // ─── Edit Property Dialog Handlers ──────────────────────
+  const openEditDialog = () => {
+    if (!property) return;
+    resetProp({
+      name: property.name,
+      description: property.description,
+      categoryId: property.categoryId,
+      city: property.city,
+      address: property.address,
+    });
+    setExistingPropImages(
+      (property.images || []).map((img: any) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+      })),
+    );
+    setNewPropImages([]);
+    setRemovedPropImageIds([]);
+    setShowEditDialog(true);
+  };
+
+  const closeEditDialog = () => {
+    newPropImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setNewPropImages([]);
+    setRemovedPropImageIds([]);
+    setExistingPropImages([]);
+    resetProp();
+    setShowEditDialog(false);
+  };
+
+  const activePropImages = existingPropImages.filter(
+    (img) => !removedPropImageIds.includes(img.id),
+  );
+  const totalPropImageCount = activePropImages.length + newPropImages.length;
+  const markedPropForRemoval = existingPropImages.filter((img) =>
+    removedPropImageIds.includes(img.id),
+  );
+
+  const handleAddPropImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const available = MAX_IMAGES - totalPropImageCount;
+    if (available <= 0) {
+      toast.error(`Maximum ${MAX_IMAGES} images allowed`);
+      e.target.value = "";
+      return;
+    }
+    const filesToAdd = Array.from(files).slice(0, available);
+    if (filesToAdd.some((f) => f.size > 2 * 1024 * 1024)) {
+      toast.error("Each image must be less than 2MB");
+      e.target.value = "";
+      return;
+    }
+    setNewPropImages((prev) => [
+      ...prev,
+      ...filesToAdd.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ]);
+    e.target.value = "";
+  };
+
+  const onEditPropSubmit: SubmitHandler<EditPropertyValues> = (data) => {
+    updatePropMutation.mutate(data);
+  };
+
+  // ─── Helpers ──────────────────────────────────────────
   const formatCurrency = (val: string | number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(Number(val));
+
+  const markedRoomForRemoval = existingRoomImages.filter((img) =>
+    removedRoomImageIds.includes(img.id),
+  );
 
   if (isLoading) {
     return (
@@ -219,12 +485,10 @@ export default function PropertyDetailPage() {
         <Button
           variant="outline"
           className="gap-2"
-          asChild
+          onClick={openEditDialog}
         >
-          <Link to={`/tenant/dashboard/properties/${id}/edit`}>
-            <Pencil className="h-4 w-4" />
-            Edit Property
-          </Link>
+          <Pencil className="h-4 w-4" />
+          Edit Property
         </Button>
       </div>
 
@@ -239,7 +503,8 @@ export default function PropertyDetailPage() {
               Rooms
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage rooms for this property. Click on a room to manage availability and rates.
+              Manage rooms for this property. Click on a room to manage
+              availability and rates.
             </p>
           </div>
           <Button className="gap-2" onClick={openNewRoom}>
@@ -290,6 +555,15 @@ export default function PropertyDetailPage() {
                   transition={{ delay: i * 0.05 }}
                 >
                   <Card className="group hover:shadow-md transition-all">
+                    {room.images && room.images.length > 0 && (
+                      <div className="aspect-video overflow-hidden rounded-t-lg">
+                        <img
+                          src={room.images[0].imageUrl}
+                          alt={room.name}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    )}
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-base">
@@ -325,11 +599,14 @@ export default function PropertyDetailPage() {
                           <span>{room.capacity} guests</span>
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold text-emerald-600">
-                          <DollarSign className="h-3.5 w-3.5" />
                           <span>{formatCurrency(room.basePrice)}</span>
                         </div>
                       </div>
-
+                      {room.images && room.images.length > 1 && (
+                        <p className="text-xs text-muted-foreground">
+                          {room.images.length} images
+                        </p>
+                      )}
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -367,18 +644,19 @@ export default function PropertyDetailPage() {
         )}
       </div>
 
-      {/* Room Create/Edit Dialog */}
+      {/* ═══════════════════ ROOM CREATE/EDIT DIALOG ═══════════════════ */}
       <Dialog
         open={showRoomDialog}
         onOpenChange={(open) => {
           if (!open) {
             setShowRoomDialog(false);
             setEditingRoom(null);
-            reset();
+            resetRoom();
+            resetRoomImageState();
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingRoom ? "Edit Room" : "Add New Room"}
@@ -389,17 +667,20 @@ export default function PropertyDetailPage() {
                 : "Fill in the details for the new room."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onRoomSubmit)} className="space-y-4">
+          <form
+            onSubmit={handleSubmitRoom(onRoomSubmit)}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="room-name">Room Name</Label>
               <Input
                 id="room-name"
                 placeholder="e.g. Deluxe Suite, Standard Room"
-                {...register("name")}
+                {...registerRoom("name")}
               />
-              {errors.name && (
+              {roomErrors.name && (
                 <p className="text-xs text-destructive">
-                  {errors.name.message}
+                  {roomErrors.name.message}
                 </p>
               )}
             </div>
@@ -409,11 +690,11 @@ export default function PropertyDetailPage() {
               <Textarea
                 id="room-description"
                 placeholder="Describe the room..."
-                {...register("description")}
+                {...registerRoom("description")}
               />
-              {errors.description && (
+              {roomErrors.description && (
                 <p className="text-xs text-destructive">
-                  {errors.description.message}
+                  {roomErrors.description.message}
                 </p>
               )}
             </div>
@@ -425,15 +706,14 @@ export default function PropertyDetailPage() {
                   id="room-capacity"
                   type="number"
                   min={1}
-                  {...register("capacity")}
+                  {...registerRoom("capacity")}
                 />
-                {errors.capacity && (
+                {roomErrors.capacity && (
                   <p className="text-xs text-destructive">
-                    {errors.capacity.message}
+                    {roomErrors.capacity.message}
                   </p>
                 )}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="room-price">Base Price (IDR / Night)</Label>
                 <div className="relative">
@@ -442,18 +722,140 @@ export default function PropertyDetailPage() {
                     type="number"
                     min={0}
                     className="pl-12"
-                    {...register("basePrice")}
+                    {...registerRoom("basePrice")}
                   />
                   <span className="absolute left-3 top-2.5 text-sm font-semibold text-muted-foreground">
                     Rp
                   </span>
                 </div>
-                {errors.basePrice && (
+                {roomErrors.basePrice && (
                   <p className="text-xs text-destructive">
-                    {errors.basePrice.message}
+                    {roomErrors.basePrice.message}
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Room Images */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" />
+                Room Images
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {activeExistingRoomImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="relative group aspect-[4/3] rounded-md border overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={img.imageUrl}
+                      alt="Room"
+                      className="object-cover w-full h-full"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-100 transition-opacity"
+                      onClick={() =>
+                        setRemovedRoomImageIds((prev) => [...prev, img.id])
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute bottom-0.5 left-0.5">
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1 py-0"
+                      >
+                        Saved
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {newRoomImages.map((img, index) => (
+                  <div
+                    key={`new-${index}`}
+                    className="relative group aspect-[4/3] rounded-md border-2 border-dashed border-primary/30 overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={img.previewUrl}
+                      alt="New upload"
+                      className="object-cover w-full h-full"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-100 transition-opacity"
+                      onClick={() => {
+                        setNewRoomImages((prev) => {
+                          const updated = [...prev];
+                          URL.revokeObjectURL(updated[index].previewUrl);
+                          updated.splice(index, 1);
+                          return updated;
+                        });
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute bottom-0.5 left-0.5">
+                      <Badge className="text-[9px] px-1 py-0 bg-primary/80">
+                        New
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {totalRoomImageCount < MAX_ROOM_IMAGES && (
+                  <button
+                    type="button"
+                    className="aspect-[4/3] rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
+                    onClick={() => roomFileInputRef.current?.click()}
+                  >
+                    <Plus className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">
+                      Add
+                    </span>
+                  </button>
+                )}
+              </div>
+              {markedRoomForRemoval.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-medium">
+                    Removed (click to restore):
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {markedRoomForRemoval.map((img) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        className="relative h-10 w-14 rounded border overflow-hidden opacity-40 hover:opacity-70 transition-opacity"
+                        onClick={() =>
+                          setRemovedRoomImageIds((prev) =>
+                            prev.filter((rid) => rid !== img.id),
+                          )
+                        }
+                      >
+                        <img
+                          src={img.imageUrl}
+                          alt="Removed"
+                          className="object-cover w-full h-full"
+                        />
+                        <div className="absolute inset-0 bg-destructive/20" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                {totalRoomImageCount}/{MAX_ROOM_IMAGES} images • JPG, PNG, max
+                2MB
+              </p>
+              <input
+                ref={roomFileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAddRoomImages}
+              />
             </div>
 
             <DialogFooter>
@@ -463,7 +865,8 @@ export default function PropertyDetailPage() {
                 onClick={() => {
                   setShowRoomDialog(false);
                   setEditingRoom(null);
-                  reset();
+                  resetRoom();
+                  resetRoomImageState();
                 }}
               >
                 Cancel
@@ -471,10 +874,11 @@ export default function PropertyDetailPage() {
               <Button
                 type="submit"
                 disabled={
-                  createMutation.isPending || updateMutation.isPending
+                  createRoomMutation.isPending || updateRoomMutation.isPending
                 }
               >
-                {(createMutation.isPending || updateMutation.isPending) && (
+                {(createRoomMutation.isPending ||
+                  updateRoomMutation.isPending) && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 {editingRoom ? "Save Changes" : "Create Room"}
@@ -484,7 +888,7 @@ export default function PropertyDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Room Dialog */}
+      {/* ═══════════════════ DELETE ROOM DIALOG ═══════════════════ */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
@@ -493,31 +897,288 @@ export default function PropertyDetailPage() {
           <DialogHeader>
             <DialogTitle>Delete Room</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?
-              This will remove all availability and peak rate data for this room.
+              Are you sure you want to delete{" "}
+              <strong>{deleteTarget?.name}</strong>? This will remove all
+              availability and peak rate data for this room.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              disabled={deleteMutation.isPending}
+              disabled={deleteRoomMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={() =>
-                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+                deleteTarget && deleteRoomMutation.mutate(deleteTarget.id)
               }
-              disabled={deleteMutation.isPending}
+              disabled={deleteRoomMutation.isPending}
             >
-              {deleteMutation.isPending && (
+              {deleteRoomMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════ EDIT PROPERTY DIALOG ═══════════════════ */}
+      <Dialog
+        open={showEditDialog}
+        onOpenChange={(open) => {
+          if (!open) closeEditDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Edit Property
+            </DialogTitle>
+            <DialogDescription>
+              Update your property details.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmitProp(onEditPropSubmit)}
+            className="space-y-5"
+          >
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Property Name</Label>
+              <Input id="edit-name" {...registerProp("name")} />
+              {propErrors.name && (
+                <p className="text-xs text-destructive">
+                  {propErrors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select
+                value={watchProp("categoryId")}
+                onValueChange={(val) =>
+                  setValueProp("categoryId", val, { shouldValidate: true })
+                }
+                key={watchProp("categoryId")}
+              >
+                <input type="hidden" {...registerProp("categoryId")} />
+                <SelectTrigger id="edit-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoriesToRender.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {propErrors.categoryId && (
+                <p className="text-xs text-destructive">
+                  {propErrors.categoryId.message}
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                className="min-h-[100px]"
+                {...registerProp("description")}
+              />
+              {propErrors.description && (
+                <p className="text-xs text-destructive">
+                  {propErrors.description.message}
+                </p>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-city">City</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-city"
+                    className="pl-10"
+                    {...registerProp("city")}
+                  />
+                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+                {propErrors.city && (
+                  <p className="text-xs text-destructive">
+                    {propErrors.city.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Full Address</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-address"
+                    className="pl-10"
+                    {...registerProp("address")}
+                  />
+                  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+                {propErrors.address && (
+                  <p className="text-xs text-destructive">
+                    {propErrors.address.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" />
+                Property Images
+              </Label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {activePropImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="relative group aspect-4/3 rounded-md border overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={img.imageUrl}
+                      alt="Property"
+                      className="object-cover w-full h-full"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-100 transition-opacity"
+                      onClick={() =>
+                        setRemovedPropImageIds((prev) => [...prev, img.id])
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute bottom-0.5 left-0.5">
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] px-1 py-0"
+                      >
+                        Saved
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {newPropImages.map((img, index) => (
+                  <div
+                    key={`new-${index}`}
+                    className="relative group aspect-4/3 rounded-md border-2 border-dashed border-primary/30 overflow-hidden bg-muted"
+                  >
+                    <img
+                      src={img.previewUrl}
+                      alt="New upload"
+                      className="object-cover w-full h-full"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-100 transition-opacity"
+                      onClick={() => {
+                        setNewPropImages((prev) => {
+                          const updated = [...prev];
+                          URL.revokeObjectURL(updated[index].previewUrl);
+                          updated.splice(index, 1);
+                          return updated;
+                        });
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute bottom-0.5 left-0.5">
+                      <Badge className="text-[9px] px-1 py-0 bg-primary/80">
+                        New
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {totalPropImageCount < MAX_IMAGES && (
+                  <button
+                    type="button"
+                    className="aspect-4/3 rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
+                    onClick={() => propFileInputRef.current?.click()}
+                  >
+                    <Plus className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">
+                      Add
+                    </span>
+                  </button>
+                )}
+              </div>
+              {markedPropForRemoval.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-medium">
+                    Removed (click to restore):
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {markedPropForRemoval.map((img) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        className="relative h-10 w-14 rounded border overflow-hidden opacity-40 hover:opacity-70 transition-opacity"
+                        onClick={() =>
+                          setRemovedPropImageIds((prev) =>
+                            prev.filter((rid) => rid !== img.id),
+                          )
+                        }
+                      >
+                        <img
+                          src={img.imageUrl}
+                          alt="Removed"
+                          className="object-cover w-full h-full"
+                        />
+                        <div className="absolute inset-0 bg-destructive/20" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                {totalPropImageCount}/{MAX_IMAGES} images • JPG, PNG, max 2MB
+              </p>
+              <input
+                ref={propFileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAddPropImages}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+                disabled={updatePropMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updatePropMutation.isPending}
+              >
+                {updatePropMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

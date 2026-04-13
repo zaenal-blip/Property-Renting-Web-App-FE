@@ -174,27 +174,20 @@ export async function fetchRoomById(id: string): Promise<Room> {
   return data;
 }
 
-export async function createRoom(payload: {
-  propertyId: string;
-  name: string;
-  description: string;
-  capacity: number;
-  basePrice: number;
-}) {
-  const { data } = await axiosInstance.post("/rooms", payload);
+export async function createRoom(payload: FormData) {
+  const { data } = await axiosInstance.post("/rooms", payload, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return data;
 }
 
 export async function updateRoom(
   id: string,
-  payload: Partial<{
-    name: string;
-    description: string;
-    capacity: number;
-    basePrice: number;
-  }>,
+  payload: FormData,
 ) {
-  const { data } = await axiosInstance.patch(`/rooms/${id}`, payload);
+  const { data } = await axiosInstance.patch(`/rooms/${id}`, payload, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return data;
 }
 
