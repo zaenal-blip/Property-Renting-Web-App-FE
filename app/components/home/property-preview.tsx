@@ -1,15 +1,15 @@
 import { Link } from "react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { PropertyCard } from "~/components/shared/property-card";
 import { motion } from "framer-motion";
-import { usePropertiesQuery } from "~/hooks/use-properties";
+import { useProperties } from "~/hooks/use-properties";
 
 export function PropertyPreview() {
-  const { data: response, isLoading } = usePropertiesQuery({ 
+  const { data: response, isLoading } = useProperties({
     take: 6,
     sortBy: "createdAt",
-    sortOrder: "desc"
+    sortOrder: "desc",
   });
 
   const featured = response?.data || [];
@@ -41,7 +41,10 @@ export function PropertyPreview() {
         {isLoading ? (
           // Simple loading skeletons
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-[300px] w-full animate-pulse rounded-2xl bg-muted" />
+            <div
+              key={i}
+              className="h-[300px] w-full animate-pulse rounded-2xl bg-muted"
+            />
           ))
         ) : featured.length > 0 ? (
           featured.map((property: any, i: number) => (

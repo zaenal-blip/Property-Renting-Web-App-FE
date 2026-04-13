@@ -1,17 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
-import { PropertyService } from "~/modules/properties/property.service";
+import {
+  fetchProperties,
+  fetchCategories,
+  fetchLocations,
+  fetchPropertyBySlug,
+  type PropertyQueryParams,
+} from "~/lib/property.api";
 
-export const usePropertiesQuery = (params: any) => {
+/**
+ * React Query hook to fetch paginated & filtered properties from the backend.
+ */
+export function useProperties(params: PropertyQueryParams) {
   return useQuery({
     queryKey: ["properties", params],
-    queryFn: () => PropertyService.getProperties(params),
+    queryFn: () => fetchProperties(params),
   });
-};
+}
 
-export const usePropertyDetailQuery = (slug: string) => {
+/** Alias kept for backward compatibility with feature2 code */
+export const usePropertiesQuery = useProperties;
+
+/**
+ * React Query hook to fetch a single property by slug.
+ */
+export function usePropertyDetailQuery(slug: string) {
   return useQuery({
     queryKey: ["properties", slug],
-    queryFn: () => PropertyService.getPropertyBySlug(slug),
+    queryFn: () => fetchPropertyBySlug(slug),
     enabled: !!slug,
   });
-};
+}
+
+/**
+ * React Query hook to fetch all property categories.
+ */
+export function useCategories() {
+  return useQuery({
+    queryKey: ["property-categories"],
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000, // categories rarely change
+  });
+}
+
+/**
+ * React Query hook to fetch locations (unique property cities) with optional server-side search filtering.
+ */
+export function useLocations(search?: string) {
+  return useQuery({
+    queryKey: ["property-locations", search],
+    queryFn: () => fetchLocations(search),
+    staleTime: 5 * 60 * 1000,
+  });
+}

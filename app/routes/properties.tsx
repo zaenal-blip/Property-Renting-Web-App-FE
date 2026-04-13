@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -13,46 +12,40 @@ import { FilterContent } from "~/components/property/filter-content";
 import { PropertyEmptyState } from "~/components/property/property-empty-state";
 import { PropertyPagination } from "~/components/property/property-pagination";
 import { usePropertyFilters } from "~/hooks/use-property-filters";
-// Removed unused mock imports
+import { useProperties } from "~/hooks/use-properties";
 import { ITEMS_PER_PAGE } from "~/types/property";
-import { usePropertiesQuery } from "~/hooks/use-properties";
 
 const PropertiesPage = () => {
   const filters = usePropertyFilters();
 
-  // ── Fetch data from backend ──
+  // ── Build API query params (supports multiple categories via comma-separated categoryId) ──
   const queryParams = {
     page: filters.page,
     take: ITEMS_PER_PAGE,
     search: filters.searchQuery || undefined,
-    city: filters.destination || undefined,
-    categoryId: filters.selectedCategories.length > 0 ? filters.selectedCategories[0] : undefined,
-    sortBy: filters.sortBy,
-    sortOrder: filters.sortOrder,
+    destination: filters.destination || undefined,
+    categoryId:
+      filters.selectedCategories.length > 0
+        ? filters.selectedCategories.join(",")
+        : undefined,
+    sortBy: filters.sortBy || "createdAt",
+    sortOrder: (filters.sortOrder || "desc") as "asc" | "desc",
     startDate: filters.startDate || undefined,
     endDate: filters.endDate || undefined,
     capacity: filters.capacity || undefined,
   };
 
-  const { data: response, isLoading, isError } = usePropertiesQuery(queryParams);
+  const { data: response, isLoading, isError, error } =
+    useProperties(queryParams);
 
-  const paginatedProperties = response?.data || [];
-  const totalPages = response?.meta?.totalPages || response?.meta?.total 
-    ? Math.ceil(response.meta.total / ITEMS_PER_PAGE) 
-    : 1;
+  const properties = response?.data || [];
+  const meta = response?.meta;
+  const totalPages = meta?.totalPages || 1;
 
   // ── Shared filter props ──
   const filterProps = {
     searchName: filters.localSearchName,
     setSearchName: filters.setLocalSearchName,
-    location: filters.localLocation,
-    setLocation: filters.setLocalLocation,
-    minPrice: filters.localMinPrice,
-    setMinPrice: filters.setLocalMinPrice,
-    maxPrice: filters.localMaxPrice,
-    setMaxPrice: filters.setLocalMaxPrice,
-    minRating: filters.minRating,
-    setMinRating: filters.setMinRating,
     selectedCategories: filters.selectedCategories,
     toggleCategory: filters.toggleCategory,
     sortBy: filters.sortBy,
@@ -78,7 +71,9 @@ const PropertiesPage = () => {
             : "All Properties"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Showing {response?.meta?.total || 0} properties
+          {isLoading
+            ? "Loading properties..."
+            : `Showing ${properties.length} of ${meta?.total || 0} properties`}
         </p>
       </div>
 
@@ -118,29 +113,52 @@ const PropertiesPage = () => {
             </Sheet>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Loading properties...
+              </p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {isError && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <p className="text-sm text-destructive">
+                Failed to load properties.{" "}
+                {(error as Error)?.message || "Please try again."}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
           {/* Property Grid / Empty State */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-muted-foreground">
-              Loading properties...
-            </div>
-          ) : isError ? (
-            <div className="flex items-center justify-center py-20 text-red-500">
-              Error loading properties.
-            </div>
-          ) : paginatedProperties.length > 0 ? (
-            <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
-              {paginatedProperties.map((property: any) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
-          ) : (
-            <PropertyEmptyState onReset={filters.resetFilters} />
+          {!isLoading && !isError && (
+            <>
+              {properties.length > 0 ? (
+                <div className="h-auto grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 mb-6">
+                  {properties.map((property) => (
+                    <PropertyCard key={property.id} property={property} />
+                  ))}
+                </div>
+              ) : (
+                <PropertyEmptyState onReset={filters.resetFilters} />
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* Pagination */}
-      {paginatedProperties.length > 0 && totalPages > 1 && (
+      {!isLoading && properties.length > 0 && totalPages > 1 && (
         <PropertyPagination
           page={filters.page}
           totalPages={totalPages}

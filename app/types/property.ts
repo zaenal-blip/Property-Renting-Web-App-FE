@@ -69,7 +69,7 @@ export interface PeakSeasonRate {
   value: number;
 }
 
-export type PropertySortBy = "price" | "rating";
+export type PropertySortBy = "name" | "price" | "createdAt";
 
 export interface PropertyFilters {
   destination?: string;
@@ -127,18 +127,3 @@ export interface PropertyFilterState {
 // ── Constants ──
 
 export const ITEMS_PER_PAGE = 6;
-
-export const PROPERTY_CATEGORIES: { value: string; label: string }[] = [
-  { value: "hotel", label: "Hotel" },
-  { value: "villa", label: "Villa" },
-  { value: "resort", label: "Resort" },
-  { value: "apartment", label: "Apartment" },
-  { value: "guesthouse", label: "Guesthouse" },
-];
-
-export const RATING_OPTIONS: { value: string; label: string }[] = [
-  { value: "0", label: "Any Rating" },
-  { value: "3", label: "3+ Stars" },
-  { value: "4", label: "4+ Stars" },
-  { value: "4.5", label: "4.5+ Stars" },
-];
