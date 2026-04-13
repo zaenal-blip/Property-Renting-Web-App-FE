@@ -67,7 +67,7 @@ export function FilterContent({
               >
                 <Checkbox
                   id={`filter-category-${cat.name}`}
-                  checked={selectedCategories.includes(cat.name)}
+                  checked={selectedCategories.includes(cat.name.toLowerCase())}
                   onCheckedChange={() => toggleCategory(cat.name)}
                 />
                 <span className="text-sm text-foreground capitalize">

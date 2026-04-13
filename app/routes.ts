@@ -53,16 +53,8 @@ export default [
       "routes/tenant/dashboard-properties.tsx",
     ),
     route(
-      "/tenant/dashboard/properties/new",
-      "routes/tenant/property-new.tsx",
-    ),
-    route(
       "/tenant/dashboard/properties/:id",
       "routes/tenant/property-detail.tsx",
-    ),
-    route(
-      "/tenant/dashboard/properties/:id/edit",
-      "routes/tenant/property-edit.tsx",
     ),
     route(
       "/tenant/dashboard/properties/:id/rooms/:roomId",
