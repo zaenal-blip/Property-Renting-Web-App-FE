@@ -93,6 +93,15 @@ export default function UserOrdersPage() {
       });
       return response.data;
     },
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 5000;
+      const arr = Array.isArray(data) ? data : data.data ?? [];
+      const hasPending = arr.some(
+        (r: any) => r.status === "WAITING_PAYMENT" || r.status === "WAITING_CONFIRMATION"
+      );
+      return hasPending ? 5000 : false;
+    },
   });
 
   // Handle both { data: [...] } and plain array response shapes
