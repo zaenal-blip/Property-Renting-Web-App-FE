@@ -75,7 +75,7 @@ export default function TenantReviewsPage() {
   // ─── RENDER ─────────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto px-4 py-24 md:py-28 max-w-5xl">
+    <div className="mx-auto py-6 max-w-5xl">
       <div className="flex flex-col gap-8">
         {/* Header */}
         <div className="flex items-center justify-between">

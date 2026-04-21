@@ -18,6 +18,7 @@ import {
   Timer,
   Star,
 } from "lucide-react";
+import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { ReviewForm } from "~/components/property/review-form";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "~/components/ui/card";
@@ -481,7 +482,8 @@ export default function OrderDetailPage() {
 
             {/* ── Review Form (only for confirmed/completed after checkout) ── */}
             {(reservation.status === "CONFIRMED" || reservation.status === "COMPLETED") && 
-             new Date() >= new Date(reservation.checkoutDate) && 
+             (isAfter(startOfDay(new Date()), startOfDay(new Date(reservation.checkoutDate))) || 
+              isSameDay(new Date(), new Date(reservation.checkoutDate))) && 
              !(reservation as any).review && (
               <ReviewForm 
                 reservationId={reservation.id} 
