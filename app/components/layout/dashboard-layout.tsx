@@ -11,6 +11,7 @@ import {
   Menu,
   BedDouble,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -48,6 +49,11 @@ const sidebarNav = [
     label: "Reviews",
     href: "/tenant/dashboard/reviews",
     icon: Star,
+  },
+  {
+    label: "Reports",
+    href: "/tenant/dashboard/reports",
+    icon: BarChart3,
   },
   {
     label: "Settings",

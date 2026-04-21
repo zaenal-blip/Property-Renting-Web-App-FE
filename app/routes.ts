@@ -25,8 +25,6 @@ export default [
 
     // Tenant Routes
     route("/tenant/orders", "routes/tenant/orders.tsx"),
-    route("/tenant/reports", "routes/tenant/reports.tsx"),
-    route("/tenant/reviews", "routes/tenant/reviews.tsx"),
   ]),
 
   // =====================
@@ -74,11 +72,12 @@ export default [
       "routes/tenant/categories.tsx",
     ),
     route("/tenant/dashboard/orders", "routes/tenant/dashboard-orders.tsx"),
-    route("/tenant/dashboard/reviews", "routes/tenant/dashboard-reviews.tsx"),
+    route("/tenant/dashboard/reviews", "routes/tenant/reviews.tsx"),
     route(
       "/tenant/dashboard/settings",
       "routes/tenant/dashboard-settings.tsx",
     ),
+    route("/tenant/dashboard/reports", "routes/tenant/reports.tsx"),
   ]),
 
   // =====================
