@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "~/hooks/use-debounce";
+
 import {
   Search,
   Filter,
@@ -82,6 +84,8 @@ export default function DashboardOrdersPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   
   // Modals state
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
@@ -92,11 +96,11 @@ export default function DashboardOrdersPage() {
 
   // 1. Fetch Reservations
   const { data: response, isLoading } = useQuery({
-    queryKey: ["tenant-reservations", statusFilter, searchQuery],
+    queryKey: ["tenant-reservations", statusFilter, debouncedSearchQuery],
     queryFn: async () => {
       const params: any = {};
       if (statusFilter !== "ALL") params.status = statusFilter;
-      if (searchQuery) params.orderId = searchQuery;
+      if (debouncedSearchQuery) params.orderId = debouncedSearchQuery;
 
       const res = await axiosInstance.get("/reservations", { params });
       return res.data;

@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "~/hooks/use-debounce";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderOpen,
@@ -50,6 +52,8 @@ export default function CategoriesPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
   const [showDialog, setShowDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
@@ -61,11 +65,11 @@ export default function CategoriesPage() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["tenant-categories", user?.id, search],
+    queryKey: ["tenant-categories", user?.id, debouncedSearch],
     queryFn: () =>
       fetchTenantCategories({
         tenantId: user?.id,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
       }),
     enabled: !!user?.id,
   });

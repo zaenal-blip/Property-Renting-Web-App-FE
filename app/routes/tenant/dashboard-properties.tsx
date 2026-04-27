@@ -64,6 +64,8 @@ import {
   type TenantProperty,
 } from "~/lib/tenant-api";
 import { useAuthStore } from "~/modules/auth/auth.store";
+import { useDebounce } from "~/hooks/use-debounce";
+
 
 // ─── Schema ──────────────────────────────────────────
 const createPropertySchema = z.object({
@@ -91,6 +93,8 @@ export default function DashboardPropertiesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
+
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<TenantProperty | null>(null);
@@ -131,10 +135,10 @@ export default function DashboardPropertiesPage() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["tenant-properties", search, categoryFilter, page],
+    queryKey: ["tenant-properties", debouncedSearch, categoryFilter, page],
     queryFn: () =>
       fetchTenantProperties({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         categoryId: categoryFilter === "all" ? undefined : categoryFilter,
         page,
         take,
