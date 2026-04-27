@@ -20,7 +20,7 @@ import {
   verifyEmailSchema,
   type VerifyEmailSchema,
 } from "~/modules/auth/auth.schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { authService } from "~/modules/auth/auth.service";
 
 export default function VerifyEmailPage() {
@@ -79,6 +79,15 @@ export default function VerifyEmailPage() {
     },
   });
 
+  const { data: tokenValidation, isLoading: isCheckingToken } = useQuery({
+    queryKey: ["check-verification-token", token],
+    queryFn: () => authService.checkVerificationToken(token!),
+    enabled: !!token && !verified,
+    retry: false,
+  });
+
+  const isTokenValid = tokenStatus === "valid" && tokenValidation?.valid;
+
   const { mutate: resendEmail, isPending: isResending } = useMutation({
     mutationFn: (email: string) => authService.resendVerification(email),
     onSuccess: () => {
@@ -93,8 +102,18 @@ export default function VerifyEmailPage() {
     mutate(data);
   };
 
+  // Loading state while checking token
+  if (isCheckingToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   // Invalid or missing token UX
-  if (tokenStatus !== "valid") {
+  if (!isTokenValid) {
+    const isExpired = tokenStatus === "expired" || tokenValidation?.message === "expired";
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <motion.div
@@ -106,15 +125,15 @@ export default function VerifyEmailPage() {
             <AlertTriangle className="h-10 w-10 text-red-600" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-3">
-            {tokenStatus === "expired" ? "Link Expired" : "Invalid Verification Link"}
+            {isExpired ? "Link Expired" : "Invalid Verification Link"}
           </h1>
           <p className="text-muted-foreground mb-8">
-            {tokenStatus === "expired" 
-             ? "This verification link has expired. Please request a new one below."
+            {isExpired 
+             ? "This verification link has expired or has been used. Please request a new one below."
              : "The verification link is missing or invalid. Please check the link in your email and try again."}
           </p>
           
-          {tokenStatus === "expired" && registeredEmail ? (
+          {(isExpired || tokenStatus === "expired") && registeredEmail ? (
             <div className="space-y-3">
               <Button
                 onClick={() => resendEmail(registeredEmail)}

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -7,6 +9,8 @@ import {
   CreditCard,
   ShieldCheck,
   Info,
+  Loader2,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -18,20 +22,42 @@ import {
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { Badge } from "~/components/ui/badge";
+import { DatePicker } from "~/components/ui/date-picker";
 import { toast } from "sonner";
 import { formatPrice } from "~/lib/utils";
 import { useBookingStore } from "~/modules/booking/booking.store";
 import { axiosInstance } from "~/lib/axios";
 import { usePropertyDetailQuery } from "~/hooks/use-properties";
 
+// Fetch the accurate total price from backend (includes peak rate calculation)
+async function fetchTotalPrice(
+  roomId: string,
+  startDate: string,
+  endDate: string,
+) {
+  const { data } = await axiosInstance.get(
+    `/availability/${roomId}/total-price`,
+    {
+      params: { startDate, endDate },
+    },
+  );
+  return data as {
+    roomId: string;
+    startDate: string;
+    endDate: string;
+    nights: number;
+    totalPrice: number;
+    basePrice: number | string;
+  };
+}
+
 export default function BookingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { selectedRoom, checkinDate, checkoutDate, setBooking, clearBooking } =
     useBookingStore();
-  const { data: property, isLoading: propertyLoading } = usePropertyDetailQuery(
-    id || "",
-  );
+  const { data: property, isLoading: propertyLoading } =
+    usePropertyDetailQuery(id || "");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localCheckin, setLocalCheckin] = useState(checkinDate || "");
@@ -39,6 +65,19 @@ export default function BookingPage() {
   const [paymentMethod, setPaymentMethod] = useState<
     "MANUAL_TRANSFER" | "PAYMENT_GATEWAY"
   >("MANUAL_TRANSFER");
+
+  // Fetch accurate price from backend (accounts for peak rates)
+  const hasDates =
+    !!localCheckin &&
+    !!localCheckout &&
+    new Date(localCheckin) < new Date(localCheckout);
+  const { data: priceData, isLoading: priceLoading } = useQuery({
+    queryKey: ["total-price", selectedRoom?.id, localCheckin, localCheckout],
+    queryFn: () =>
+      fetchTotalPrice(selectedRoom!.id, localCheckin, localCheckout),
+    enabled: !!selectedRoom && hasDates,
+    retry: false,
+  });
 
   // Redirect if no room selected (but not if we just finished booking)
   useEffect(() => {
@@ -107,8 +146,10 @@ export default function BookingPage() {
     );
   }
 
+  // Use backend price data if available, otherwise fallback to simple calculation
   const nights =
-    localCheckin && localCheckout
+    priceData?.nights ??
+    (localCheckin && localCheckout
       ? Math.max(
           1,
           Math.ceil(
@@ -117,9 +158,13 @@ export default function BookingPage() {
               (1000 * 60 * 60 * 24),
           ),
         )
-      : 1;
+      : 1);
 
-  const totalPrice = selectedRoom.basePrice * nights;
+  const totalPrice =
+    priceData?.totalPrice ?? selectedRoom.basePrice * nights;
+  const baseTotal = Number(selectedRoom.basePrice) * nights;
+  const hasPeakAdjustment =
+    priceData && Number(priceData.totalPrice) !== baseTotal;
 
   return (
     <div className="container mx-auto px-4 py-24 md:py-28">
@@ -149,33 +194,39 @@ export default function BookingPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Check-in Date</label>
-                    <input
-                      type="date"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={localCheckin}
-                      onChange={(e) => {
-                        setLocalCheckin(e.target.value);
-                        setBooking({ checkinDate: e.target.value });
+                    <label className="text-sm font-medium">
+                      Check-in Date
+                    </label>
+                    <DatePicker
+                      date={
+                        localCheckin
+                          ? new Date(localCheckin + "T00:00:00")
+                          : undefined
+                      }
+                      setDate={(d) => {
+                        const val = d ? format(d, "yyyy-MM-dd") : "";
+                        setLocalCheckin(val);
+                        setBooking({ checkinDate: val });
                       }}
-                      min={new Date().toISOString().split("T")[0]}
+                      placeholder="Pick check-in date"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
                       Check-out Date
                     </label>
-                    <input
-                      type="date"
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={localCheckout}
-                      onChange={(e) => {
-                        setLocalCheckout(e.target.value);
-                        setBooking({ checkoutDate: e.target.value });
-                      }}
-                      min={
-                        localCheckin || new Date().toISOString().split("T")[0]
+                    <DatePicker
+                      date={
+                        localCheckout
+                          ? new Date(localCheckout + "T00:00:00")
+                          : undefined
                       }
+                      setDate={(d) => {
+                        const val = d ? format(d, "yyyy-MM-dd") : "";
+                        setLocalCheckout(val);
+                        setBooking({ checkoutDate: val });
+                      }}
+                      placeholder="Pick check-out date"
                     />
                   </div>
                 </div>
@@ -230,7 +281,8 @@ export default function BookingPage() {
                     <div>
                       <p className="font-bold">Instant Payment (Xendit)</p>
                       <p className="text-xs text-muted-foreground">
-                        Pay via E-Wallet, VA, or Credit Card. Automatic confirm.
+                        Pay via E-Wallet, VA, or Credit Card. Automatic
+                        confirm.
                       </p>
                     </div>
                   </div>
@@ -255,12 +307,14 @@ export default function BookingPage() {
               variant="cta"
               size="lg"
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || priceLoading}
               onClick={handleBooking}
             >
               {isSubmitting
                 ? "Processing..."
-                : `Confirm & Pay ${formatPrice(totalPrice)}`}
+                : priceLoading
+                  ? "Calculating price..."
+                  : `Confirm & Pay ${formatPrice(totalPrice)}`}
             </Button>
           </div>
 
@@ -295,11 +349,26 @@ export default function BookingPage() {
                   <h4 className="text-sm font-semibold">Price Details</h4>
                   <div className="flex justify-between text-sm">
                     <span>
-                      {formatPrice(selectedRoom.basePrice)} x {nights} night
+                      {formatPrice(Number(selectedRoom.basePrice))} x{" "}
+                      {nights} night
                       {nights > 1 ? "s" : ""}
                     </span>
-                    <span>{formatPrice(totalPrice)}</span>
+                    <span>{formatPrice(baseTotal)}</span>
                   </div>
+                  {hasPeakAdjustment && (
+                    <div className="flex justify-between text-sm text-amber-600">
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                        Peak Season Adjustment
+                      </span>
+                      <span>
+                        +
+                        {formatPrice(
+                          Number(priceData.totalPrice) - baseTotal,
+                        )}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span>Service Fee</span>
                     <span className="text-success">Free</span>
@@ -311,7 +380,11 @@ export default function BookingPage() {
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total (IDR)</span>
                   <span className="text-primary">
-                    {formatPrice(totalPrice)}
+                    {priceLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin inline" />
+                    ) : (
+                      formatPrice(totalPrice)
+                    )}
                   </span>
                 </div>
 

@@ -27,7 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user, onboarding } = useAuthStore();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Select Role, 2: Tenant Info, 3: User Confirmation
 
   const {
     register,
@@ -64,12 +64,16 @@ export default function OnboardingPage() {
   const handleRoleSelect = (role: "USER" | "TENANT") => {
     setValue("role", role);
     if (role === "USER") {
-      // USER doesn't need extra info, submit directly
-      mutate({ role, phone: undefined, businessName: undefined });
+      // Show confirmation step for USER
+      setStep(3);
     } else {
       // TENANT needs extra info
       setStep(2);
     }
+  };
+
+  const confirmUserRole = () => {
+    mutate({ role: "USER", phone: undefined, businessName: undefined });
   };
 
   const onSubmit = (data: OnboardingSchema) => {
@@ -178,7 +182,7 @@ export default function OnboardingPage() {
                 </div>
               )}
             </motion.div>
-          ) : (
+          ) : step === 2 ? (
             <motion.div
               key="step-2"
               initial={{ opacity: 0, x: 20 }}
@@ -268,6 +272,54 @@ export default function OnboardingPage() {
                 </div>
               </form>
             </motion.div>
+          ) : (
+            <motion.div
+              key="step-3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="text-center"
+            >
+              <div className="p-6 rounded-2xl border-2 border-primary/20 bg-primary/5 mb-8">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+                  <User className="h-7 w-7" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">
+                  Confirm Account Type
+                </h3>
+                <p className="text-muted-foreground">
+                  You have selected to be a <strong>Regular User</strong>. You will be able to search and book properties.
+                </p>
+                <p className="text-xs text-muted-foreground mt-4 italic">
+                  Note: You can't change your role easily once the profile is created.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={confirmUserRole}
+                  className="w-full btn-gradient"
+                  size="lg"
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Yes, Confirm & Start Exploring
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep(1)}
+                  disabled={isPending}
+                  className="w-full"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  No, I want to change
+                </Button>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -277,7 +329,7 @@ export default function OnboardingPage() {
             className={`h-2 rounded-full transition-all ${step === 1 ? "w-8 bg-primary" : "w-2 bg-muted"}`}
           />
           <div
-            className={`h-2 rounded-full transition-all ${step === 2 ? "w-8 bg-primary" : "w-2 bg-muted"}`}
+            className={`h-2 rounded-full transition-all ${step === 2 || step === 3 ? "w-8 bg-primary" : "w-2 bg-muted"}`}
           />
         </div>
       </motion.div>

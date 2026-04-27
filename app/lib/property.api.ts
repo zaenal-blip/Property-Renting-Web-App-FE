@@ -100,9 +100,31 @@ export interface PropertyDetailRoom {
   name: string;
   description: string;
   capacity: number;
+  qty: number;
   basePrice: number | string;
   createdAt: string;
   images: { id: string; roomId: string; imageUrl: string }[];
+  availability?: {
+    id: string;
+    roomId: string;
+    date: string;
+    isAvailable: boolean;
+  }[];
+  inventories?: {
+    id: string;
+    roomId: string;
+    date: string;
+    totalStock: number;
+    bookedStock: number;
+  }[];
+  peakSeasonRates?: {
+    id: string;
+    roomId: string;
+    startDate: string;
+    endDate: string;
+    priceType: "NOMINAL" | "PERCENTAGE";
+    value: number;
+  }[];
 }
 
 export interface PropertyDetail {
