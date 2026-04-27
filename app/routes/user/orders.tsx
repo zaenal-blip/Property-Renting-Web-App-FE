@@ -17,8 +17,10 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
+import { DatePicker } from "~/components/ui/date-picker";
 import { axiosInstance } from "~/lib/axios";
 import { formatPrice } from "~/lib/utils";
+import { format } from "date-fns";
 import type { Reservation, ReservationStatus } from "~/types/booking";
 
 // ─── STATUS MAPS ─────────────────────────────────────────────────────
@@ -169,29 +171,18 @@ export default function UserOrdersPage() {
           </div>
 
           {/* Start date */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              title="Filter from date"
-            />
-          </div>
+          <DatePicker
+            date={startDate ? new Date(startDate + "T00:00:00") : undefined}
+            setDate={(d) => setStartDate(d ? format(d, "yyyy-MM-dd") : "")}
+            placeholder="From date"
+          />
 
           {/* End date */}
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              min={startDate}
-              className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              title="Filter to date"
-            />
-          </div>
+          <DatePicker
+            date={endDate ? new Date(endDate + "T00:00:00") : undefined}
+            setDate={(d) => setEndDate(d ? format(d, "yyyy-MM-dd") : "")}
+            placeholder="To date"
+          />
         </div>
 
         {/* Clear filters */}

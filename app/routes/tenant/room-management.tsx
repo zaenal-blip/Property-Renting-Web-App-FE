@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -35,6 +36,7 @@ import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Separator } from "~/components/ui/separator";
+import { DatePicker } from "~/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -634,11 +636,21 @@ export default function RoomManagementPage() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="rate-start">Start Date</Label>
-                <Input
-                  id="rate-start"
-                  type="date"
-                  {...register("startDate")}
+                <Label>Start Date</Label>
+                <DatePicker
+                  date={
+                    watch("startDate")
+                      ? new Date(watch("startDate") + "T00:00:00")
+                      : undefined
+                  }
+                  setDate={(d) =>
+                    setValue(
+                      "startDate",
+                      d ? format(d, "yyyy-MM-dd") : "",
+                      { shouldValidate: true },
+                    )
+                  }
+                  placeholder="Pick start date"
                 />
                 {errors.startDate && (
                   <p className="text-xs text-destructive">
@@ -647,11 +659,21 @@ export default function RoomManagementPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rate-end">End Date</Label>
-                <Input
-                  id="rate-end"
-                  type="date"
-                  {...register("endDate")}
+                <Label>End Date</Label>
+                <DatePicker
+                  date={
+                    watch("endDate")
+                      ? new Date(watch("endDate") + "T00:00:00")
+                      : undefined
+                  }
+                  setDate={(d) =>
+                    setValue(
+                      "endDate",
+                      d ? format(d, "yyyy-MM-dd") : "",
+                      { shouldValidate: true },
+                    )
+                  }
+                  placeholder="Pick end date"
                 />
                 {errors.endDate && (
                   <p className="text-xs text-destructive">

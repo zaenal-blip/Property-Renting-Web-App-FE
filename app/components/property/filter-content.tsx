@@ -1,9 +1,11 @@
 import { Search, ArrowDownAZ, ArrowDownZA, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Checkbox } from "~/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { DatePicker } from "~/components/ui/date-picker";
 import { useCategories } from "~/hooks/use-properties";
 
 export interface FilterContentProps {
@@ -68,15 +70,15 @@ export function FilterContent({
           Availability Dates
         </Label>
         <div className="flex flex-col gap-2">
-          <Input
-            type="date"
-            value={startDate || ""}
-            onChange={(e) => setStartDate(e.target.value)}
+          <DatePicker
+            date={startDate ? new Date(startDate + "T00:00:00") : undefined}
+            setDate={(d) => setStartDate(d ? format(d, "yyyy-MM-dd") : "")}
+            placeholder="Check-in date"
           />
-          <Input
-            type="date"
-            value={endDate || ""}
-            onChange={(e) => setEndDate(e.target.value)}
+          <DatePicker
+            date={endDate ? new Date(endDate + "T00:00:00") : undefined}
+            setDate={(d) => setEndDate(d ? format(d, "yyyy-MM-dd") : "")}
+            placeholder="Check-out date"
           />
         </div>
       </div>

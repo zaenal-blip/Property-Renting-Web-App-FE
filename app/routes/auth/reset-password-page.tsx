@@ -21,7 +21,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordSchema,
 } from "~/modules/auth/auth.schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { authService } from "~/modules/auth/auth.service";
 
 export default function ResetPasswordPage() {
@@ -33,11 +33,18 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isInvalidToken, setIsInvalidToken] = useState(false);
 
+  const { data: tokenValidation, isLoading: isCheckingToken } = useQuery({
+    queryKey: ["check-reset-token", token],
+    queryFn: () => authService.checkResetToken(token!),
+    enabled: !!token && !isSuccess,
+    retry: false,
+  });
+
   useEffect(() => {
-    if (!token) {
+    if (!token || (tokenValidation && !tokenValidation.valid)) {
       setIsInvalidToken(true);
     }
-  }, [token]);
+  }, [token, tokenValidation]);
 
   const {
     register,
@@ -268,6 +275,14 @@ export default function ResetPasswordPage() {
       </motion.div>
     );
   };
+
+  if (isCheckingToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const isFormState = !isInvalidToken && !isSuccess;
 

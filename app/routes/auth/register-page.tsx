@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,7 @@ import { authService } from "~/modules/auth/auth.service";
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const {
     register,
@@ -38,6 +39,7 @@ export default function RegisterPage() {
     mutationFn: (data: RegisterSchema) => authService.register(data),
     onSuccess: () => {
       setRegistrationSuccess(true);
+      setCountdown(60);
     },
     onError: (error: any) => {
       toast.error(
@@ -46,6 +48,30 @@ export default function RegisterPage() {
       );
     },
   });
+
+  const { mutate: resendMutate, isPending: isResending } = useMutation({
+    mutationFn: (email: string) => authService.resendVerification(email),
+    onSuccess: () => {
+      toast.success("Verification link has been resent to your email.");
+      setCountdown(60);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to resend verification link.",
+      );
+    },
+  });
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const onSubmit = (data: RegisterSchema) => {
     mutate(data);
@@ -82,6 +108,23 @@ export default function RegisterPage() {
               size="lg"
             >
               Go to Login
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => resendMutate(watch("email"))}
+              disabled={countdown > 0 || isResending}
+              className="w-full"
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : countdown > 0 ? (
+                `Resend Email in ${countdown}s`
+              ) : (
+                "Resend Email"
+              )}
             </Button>
             <Button
               variant="ghost"

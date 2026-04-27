@@ -70,6 +70,7 @@ const roomSchema = z.object({
   name: z.string().min(1, "Room name is required"),
   description: z.string().min(1, "Description is required"),
   capacity: z.coerce.number().min(1, "At least 1 guest"),
+  qty: z.coerce.number().min(1, "At least 1 room unit").default(1),
   basePrice: z.coerce.number().min(0, "Price must be >= 0"),
 });
 
@@ -200,6 +201,7 @@ export default function PropertyDetailPage() {
       formData.append("name", data.name);
       formData.append("description", data.description);
       formData.append("capacity", String(data.capacity));
+      formData.append("qty", String(data.qty));
       formData.append("basePrice", String(data.basePrice));
       for (const img of newRoomImages) {
         formData.append("images", img.file);
@@ -224,6 +226,7 @@ export default function PropertyDetailPage() {
       formData.append("name", data.name);
       formData.append("description", data.description);
       formData.append("capacity", String(data.capacity));
+      formData.append("qty", String(data.qty));
       formData.append("basePrice", String(data.basePrice));
       if (removedRoomImageIds.length > 0) {
         formData.append(
@@ -307,6 +310,7 @@ export default function PropertyDetailPage() {
       name: room.name,
       description: room.description,
       capacity: room.capacity,
+      qty: room.qty || 1,
       basePrice: Number(room.basePrice),
     });
     setExistingRoomImages(
@@ -322,7 +326,7 @@ export default function PropertyDetailPage() {
 
   const openNewRoom = () => {
     setEditingRoom(null);
-    resetRoom({ name: "", description: "", capacity: 1, basePrice: 0 });
+    resetRoom({ name: "", description: "", capacity: 1, qty: 1, basePrice: 0 });
     resetRoomImageState();
     setShowRoomDialog(true);
   };
@@ -598,6 +602,10 @@ export default function PropertyDetailPage() {
                           <Users className="h-3.5 w-3.5" />
                           <span>{room.capacity} guests</span>
                         </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <DoorOpen className="h-3.5 w-3.5" />
+                          <span>{room.qty || 1} units</span>
+                        </div>
                         <div className="flex items-center gap-1.5 font-semibold text-emerald-600">
                           <span>{formatCurrency(room.basePrice)}</span>
                         </div>
@@ -714,6 +722,23 @@ export default function PropertyDetailPage() {
                   </p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="room-qty">Total Rooms (Units)</Label>
+                <Input
+                  id="room-qty"
+                  type="number"
+                  min={1}
+                  {...registerRoom("qty")}
+                />
+                {roomErrors.qty && (
+                  <p className="text-xs text-destructive">
+                    {roomErrors.qty.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <div className="space-y-2">
                 <Label htmlFor="room-price">Base Price (IDR / Night)</Label>
                 <div className="relative">

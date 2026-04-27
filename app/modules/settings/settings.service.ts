@@ -50,4 +50,24 @@ export const settingsService = {
     });
     return data;
   },
+
+  async getPaymentMethods() {
+    const { data } = await axiosInstance.get(`/users/me/payment-methods`);
+    return data;
+  },
+
+  async addPaymentMethod(payload: any) {
+    const { data } = await axiosInstance.post(
+      `/users/me/payment-methods`,
+      payload,
+    );
+    return data;
+  },
+
+  async deletePaymentMethod(methodId: string) {
+    const { data } = await axiosInstance.delete(
+      `/users/me/payment-methods/${methodId}`,
+    );
+    return data;
+  },
 };
