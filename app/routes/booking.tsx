@@ -28,14 +28,15 @@ export default function BookingPage() {
   const [localCheckin, setLocalCheckin] = useState(checkinDate || "");
   const [localCheckout, setLocalCheckout] = useState(checkoutDate || "");
   const [paymentMethod, setPaymentMethod] = useState<"MANUAL_TRANSFER" | "PAYMENT_GATEWAY">("MANUAL_TRANSFER");
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   // Redirect if no room selected (but not if we just finished booking)
   useEffect(() => {
-    if (!selectedRoom && !propertyLoading && !isSubmitting) {
+    if (!selectedRoom && !propertyLoading && !isSubmitting && !bookingSuccess) {
       toast.error("Please select a room first");
       navigate(`/properties/${id || ""}`);
     }
-  }, [selectedRoom, propertyLoading, navigate, id, isSubmitting]);
+  }, [selectedRoom, propertyLoading, navigate, id, isSubmitting, bookingSuccess]);
 
   const handleBooking = async () => {
     if (!localCheckin || !localCheckout) {
@@ -65,6 +66,8 @@ export default function BookingPage() {
           ? "Redirecting to payment gateway..." 
           : "Please upload your payment proof.",
       });
+
+      setBookingSuccess(true);
 
       if (paymentMethod === "PAYMENT_GATEWAY" && invoiceUrl) {
          clearBooking();
