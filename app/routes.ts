@@ -22,6 +22,7 @@ export default [
 
     route("/user/bookings", "routes/user/orders.tsx"),
     route("/user/order-detail/:id", "routes/user/order-detail.tsx"),
+    route("/user/saved", "routes/user/saved.tsx"),
 
     // Tenant Routes
     route("/tenant/orders", "routes/tenant/orders.tsx"),

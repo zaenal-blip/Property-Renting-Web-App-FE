@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
+import { format } from "date-fns";
 import {
   Star,
   MapPin,
@@ -16,6 +17,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
+import { DatePicker } from "~/components/ui/date-picker";
 import { formatPrice } from "~/lib/utils";
 import { ImageGallery } from "~/components/property/image-gallery";
 import { RoomCard } from "~/components/property/room-card";
@@ -80,18 +82,31 @@ const PropertyDetailPage = () => {
       ? Math.min(...rooms.map((r) => Number(r.basePrice)))
       : 0;
 
-  // Group rooms by name to show "count"
-  const groupedRooms = rooms.reduce((acc: any, room) => {
-    const key = `${room.name}-${room.capacity}-${room.basePrice}`;
-    if (!acc[key]) {
-      acc[key] = { ...room, count: 1 };
-    } else {
-      acc[key].count += 1;
+  // Compute available stock based on inventory
+  const displayRooms = rooms.map((room) => {
+    let minStock = room.qty || 1; // fallback to 1 if qty is missing
+    if (checkin && checkout) {
+      const start = new Date(checkin + "T00:00:00");
+      const end = new Date(checkout + "T00:00:00");
+      let maxBooked = 0;
+      for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+        const dStr = d.toISOString().split("T")[0];
+        const inv = room.inventories?.find(
+          (i: any) => {
+             // Handle both ISO strings and Date objects
+             const iDateStr = typeof i.date === 'string' 
+                ? i.date.split("T")[0] 
+                : new Date(i.date).toISOString().split("T")[0];
+             return iDateStr === dStr;
+          }
+        );
+        const booked = inv?.bookedStock || 0;
+        if (booked > maxBooked) maxBooked = booked;
+      }
+      minStock = (room.qty || 1) - maxBooked;
     }
-    return acc;
-  }, {});
-
-  const displayRooms = Object.values(groupedRooms);
+    return { ...room, count: minStock };
+  });
 
   const handleBook = (room: Room) => {
     if (!checkin || !checkout) {
@@ -194,32 +209,22 @@ const PropertyDetailPage = () => {
                    <CalendarIcon className="h-4 w-4 text-primary" />
                    Check-in
                  </label>
-                 <div className="relative">
-                   <input 
-                     type="date" 
-                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:light] dark:[color-scheme:dark]"
-                     style={{ WebkitAppearance: 'none' }}
-                     value={checkin}
-                     onChange={(e) => setCheckin(e.target.value)}
-                     min={new Date().toISOString().split('T')[0]}
-                   />
-                 </div>
+                 <DatePicker
+                   date={checkin ? new Date(checkin + "T00:00:00") : undefined}
+                   setDate={(d) => setCheckin(d ? format(d, "yyyy-MM-dd") : "")}
+                   placeholder="Pick check-in date"
+                 />
                </div>
                <div className="space-y-2">
                  <label className="text-sm font-medium flex items-center gap-1.5">
                    <CalendarIcon className="h-4 w-4 text-primary" />
                    Check-out
                  </label>
-                 <div className="relative">
-                   <input 
-                     type="date" 
-                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:light] dark:[color-scheme:dark]"
-                     style={{ WebkitAppearance: 'none' }}
-                     value={checkout}
-                     onChange={(e) => setCheckout(e.target.value)}
-                     min={checkin || new Date().toISOString().split('T')[0]}
-                   />
-                 </div>
+                 <DatePicker
+                   date={checkout ? new Date(checkout + "T00:00:00") : undefined}
+                   setDate={(d) => setCheckout(d ? format(d, "yyyy-MM-dd") : "")}
+                   placeholder="Pick check-out date"
+                 />
                </div>
              </div>
           </div>
@@ -241,8 +246,8 @@ const PropertyDetailPage = () => {
                       room={{
                         ...room,
                         basePrice: Number(room.basePrice),
-                        availability: [],
-                        peakSeasonRates: [],
+                        availability: room.availability || [],
+                        peakSeasonRates: room.peakSeasonRates || [],
                       }}
                       onBook={handleBook}
                     />
@@ -293,8 +298,8 @@ const PropertyDetailPage = () => {
                   handleBook({
                     ...availableRoom,
                     basePrice: Number(availableRoom.basePrice),
-                    availability: [],
-                    peakSeasonRates: [],
+                    availability: availableRoom.availability || [],
+                    peakSeasonRates: availableRoom.peakSeasonRates || [],
                   });
               }}
               disabled={property.rooms.length === 0}

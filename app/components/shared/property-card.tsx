@@ -2,9 +2,9 @@ import { Link } from "react-router";
 import { Star, Heart, MapPin } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { cn, formatPrice } from "~/lib/utils";
-import { useState } from "react";
+import { useSavedProperties } from "~/hooks/use-saved-properties";
 
-interface PropertyCardProperty {
+export interface PropertyCardProperty {
   id: string;
   name: string;
   slug: string;
@@ -22,7 +22,8 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property }: PropertyCardProps) {
-  const [liked, setLiked] = useState(false);
+  const { isSaved, toggleSaved } = useSavedProperties();
+  const liked = isSaved(property.id);
 
   return (
     <Link
@@ -39,7 +40,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <button
           onClick={(e) => {
             e.preventDefault();
-            setLiked(!liked);
+            toggleSaved(property.id);
           }}
           className="absolute right-3 top-3 rounded-full bg-background/60 p-2 backdrop-blur-sm transition-colors hover:bg-background/80"
         >

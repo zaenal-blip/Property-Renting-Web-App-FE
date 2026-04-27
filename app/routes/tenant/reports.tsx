@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { axiosInstance } from "~/lib/axios";
 import { formatPrice } from "~/lib/utils";
+import { DatePicker } from "~/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -68,29 +69,31 @@ export default function TenantReportsPage() {
   // ─── RENDER ─────────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto px-4 py-24 md:py-28 max-w-7xl">
+    <div className="w-full space-y-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Reports & Analytics</h1>
             <p className="text-muted-foreground mt-1">Track your performance and room availability.</p>
           </div>
-          <div className="flex items-center gap-2">
-             <input 
-               type="date" 
-               className="bg-background border rounded-lg px-3 py-2 text-sm" 
-               value={dateRange.startDate}
-               onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-             />
-             <span className="text-muted-foreground">-</span>
-             <input 
-               type="date" 
-               className="bg-background border rounded-lg px-3 py-2 text-sm" 
-               value={dateRange.endDate}
-               onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-             />
-             <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" /> Export
+          <div className="flex flex-wrap items-center gap-3">
+             <div className="w-[180px]">
+               <DatePicker
+                 date={dateRange.startDate ? new Date(dateRange.startDate + "T00:00:00") : undefined}
+                 setDate={(d) => setDateRange(prev => ({ ...prev, startDate: d ? format(d, "yyyy-MM-dd") : "" }))}
+                 placeholder="Start date"
+               />
+             </div>
+             <span className="text-muted-foreground font-medium">-</span>
+             <div className="w-[180px]">
+               <DatePicker
+                 date={dateRange.endDate ? new Date(dateRange.endDate + "T00:00:00") : undefined}
+                 setDate={(d) => setDateRange(prev => ({ ...prev, endDate: d ? format(d, "yyyy-MM-dd") : "" }))}
+                 placeholder="End date"
+               />
+             </div>
+             <Button variant="outline" className="gap-2 shrink-0">
+                <Download className="h-4 w-4" /> Export CSV
              </Button>
           </div>
         </div>

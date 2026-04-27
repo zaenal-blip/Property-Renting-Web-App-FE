@@ -47,6 +47,20 @@ export const authService = {
     return data;
   },
 
+  async checkVerificationToken(token: string) {
+    const { data } = await axiosInstance.post("/auth/check-verification-token", {
+      token,
+    });
+    return data;
+  },
+
+  async checkResetToken(token: string) {
+    const { data } = await axiosInstance.post("/auth/check-reset-token", {
+      token,
+    });
+    return data;
+  },
+
   async onboarding(payload: OnboardingSchema) {
     const { data } = await axiosInstance.post("/auth/onboarding", payload);
     return data;
