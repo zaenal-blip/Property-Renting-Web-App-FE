@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import {
   Search,
   Filter,
@@ -295,8 +296,10 @@ export default function TenantOrdersPage() {
                               </DropdownMenuItem>
                             )}
                             
-                            <DropdownMenuItem onClick={() => toast.info("Detail view coming soon")}>
-                              <Eye className="h-4 w-4 mr-2" /> Full Details
+                            <DropdownMenuItem asChild>
+                              <Link to={`/tenant/dashboard/orders/${res.id}`} className="flex items-center w-full">
+                                <Eye className="h-4 w-4 mr-2" /> Full Details
+                              </Link>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -315,6 +318,7 @@ export default function TenantOrdersPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Payment Proof</DialogTitle>
+            <DialogDescription>Please review the guest's uploaded payment proof carefully.</DialogDescription>
           </DialogHeader>
           <div className="bg-muted rounded-xl overflow-hidden aspect-[3/4] flex items-center justify-center">
             {selectedProof && (

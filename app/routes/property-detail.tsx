@@ -269,7 +269,12 @@ const PropertyDetailPage = () => {
           <Separator />
 
           {/* Reviews */}
-          <ReviewSection propertyId={property.id} rating={0} reviewCount={0} />
+          <ReviewSection 
+            propertyId={property.id} 
+            propertyTenantId={property.tenantId}
+            rating={property.averageRating || 0} 
+            reviewCount={property.reviewCount || property._count?.reviews || 0} 
+          />
         </div>
 
         {/* Sticky Booking Card */}
