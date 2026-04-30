@@ -1,8 +1,16 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, redirect } from "react-router";
 import { User, Shield, Bell, CreditCard } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Navbar } from "./navbar";
 import { Footer } from "./footer";
+import { useAuthStore } from "~/modules/auth/auth.store";
+
+export const clientLoader = () => {
+  const user = useAuthStore.getState().user;
+  if (!user) return redirect("/login");
+  if (user.role === "TENANT") return redirect("/tenant/settings");
+  return { user };
+};
 
 const settingsNav = [
   {
