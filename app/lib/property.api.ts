@@ -25,6 +25,8 @@ export interface PropertyListItem {
   createdAt: string;
   updatedAt: string;
   category: { id: string; name: string };
+  tenantSubcategoryId?: string | null;
+  tenantSubcategory?: { id: string; name: string } | null;
   images: { id: string; propertyId: string; imageUrl: string }[];
   _count: { rooms: number; reviews: number };
   lowestPrice: number;
@@ -141,21 +143,24 @@ export interface PropertyDetail {
   createdAt: string;
   updatedAt: string;
   category: { id: string; name: string; createdAt: string };
+  tenantSubcategoryId?: string | null;
+  tenantSubcategory?: { id: string; name: string } | null;
   images: { id: string; propertyId: string; imageUrl: string }[];
   rooms: PropertyDetailRoom[];
-  tenant: { id: string; name: string; profilePicture: string | null };
-  averageRating?: number;
-  reviewCount?: number;
-  _count?: { reviews: number; rooms: number };
+  tenant: {
+    name: string;
+    businessName?: string | null;
+    profilePicture: string | null;
+  };
 }
 
 export async function fetchPropertyBySlug(
   slug: string,
-  params?: { startDate?: string; endDate?: string }
+  params?: { startDate?: string; endDate?: string },
 ): Promise<PropertyDetail> {
   const { data } = await axiosInstance.get<PropertyDetail>(
     `/properties/${slug}`,
-    { params }
+    { params },
   );
   return data;
 }

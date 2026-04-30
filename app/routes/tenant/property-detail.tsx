@@ -67,6 +67,7 @@ import {
   deleteRoom,
   type Room,
 } from "~/lib/tenant-api";
+import { fetchCategories } from "~/lib/property.api";
 import { useAuthStore } from "~/modules/auth/auth.store";
 import { axiosInstance } from "~/lib/axios";
 
@@ -85,6 +86,7 @@ const editPropertySchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
   categoryId: z.string().min(1, "Category is required"),
+  tenantSubcategoryId: z.string().optional(),
   city: z.string().min(1, "City is required"),
   address: z.string().min(5, "Address must be at least 5 characters"),
 });
@@ -152,7 +154,12 @@ export default function PropertyDetailPage() {
     enabled: !!id,
   });
 
-  const { data: categoriesData } = useQuery({
+  const { data: masterCategoriesData } = useQuery({
+    queryKey: ["master-categories"],
+    queryFn: fetchCategories,
+  });
+
+  const { data: tenantCategoriesData } = useQuery({
     queryKey: ["tenant-categories", user?.id],
     queryFn: () => fetchTenantCategories({ tenantId: user?.id }),
     enabled: !!user?.id,
@@ -172,26 +179,8 @@ export default function PropertyDetailPage() {
   const reviews = reviewsData?.data || [];
 
   const rooms = roomsData?.data ?? [];
-  const categories = categoriesData?.data ?? [];
-
-  // Ensure current category is in list
-  const categoriesToRender = [...categories];
-  if (
-    property?.category &&
-    !categoriesToRender.find((c) => c.id === property.category.id)
-  ) {
-    categoriesToRender.push(property.category as any);
-  }
-
-  // ─── Room Form ──────────────────────────────────────────
-  const {
-    register: registerRoom,
-    handleSubmit: handleSubmitRoom,
-    reset: resetRoom,
-    formState: { errors: roomErrors },
-  } = useForm<RoomFormValues>({
-    resolver: zodResolver(roomSchema) as Resolver<RoomFormValues>,
-  });
+  const masterCategories = masterCategoriesData ?? [];
+  const tenantCategories = tenantCategoriesData?.data ?? [];
 
   // ─── Edit Property Form ──────────────────────────────────
   const {
@@ -207,9 +196,25 @@ export default function PropertyDetailPage() {
       name: "",
       description: "",
       categoryId: "",
+      tenantSubcategoryId: "",
       city: "",
       address: "",
     },
+  });
+
+  // Filter tenant subcategories based on selected master category
+  const selectedMasterCategoryId = watchProp?.("categoryId");
+  const filteredSubcategories = tenantCategories.filter(
+    (tc) => tc.categoryId === selectedMasterCategoryId,
+  );
+
+  const {
+    register: registerRoom,
+    handleSubmit: handleSubmitRoom,
+    reset: resetRoom,
+    formState: { errors: roomErrors },
+  } = useForm<RoomFormValues>({
+    resolver: zodResolver(roomSchema) as Resolver<RoomFormValues>,
   });
 
   // ─── Room Mutations ──────────────────────────────────────
@@ -255,10 +260,7 @@ export default function PropertyDetailPage() {
       formData.append("qty", String(data.qty));
       formData.append("basePrice", String(data.basePrice));
       if (removedRoomImageIds.length > 0) {
-        formData.append(
-          "removedImageIds",
-          JSON.stringify(removedRoomImageIds),
-        );
+        formData.append("removedImageIds", JSON.stringify(removedRoomImageIds));
       }
       for (const img of newRoomImages) {
         formData.append("images", img.file);
@@ -317,13 +319,13 @@ export default function PropertyDetailPage() {
       formData.append("name", data.name);
       formData.append("description", data.description);
       formData.append("categoryId", data.categoryId);
+      if (data.tenantSubcategoryId) {
+        formData.append("tenantSubcategoryId", data.tenantSubcategoryId);
+      }
       formData.append("city", data.city);
       formData.append("address", data.address);
       if (removedPropImageIds.length > 0) {
-        formData.append(
-          "removedImageIds",
-          JSON.stringify(removedPropImageIds),
-        );
+        formData.append("removedImageIds", JSON.stringify(removedPropImageIds));
       }
       for (const img of newPropImages) {
         formData.append("images", img.file);
@@ -337,9 +339,7 @@ export default function PropertyDetailPage() {
       closeEditDialog();
     },
     onError: (error: any) =>
-      toast.error(
-        error.response?.data?.message || "Failed to update property",
-      ),
+      toast.error(error.response?.data?.message || "Failed to update property"),
   });
 
   // ─── Room Dialog Handlers ──────────────────────────────
@@ -417,6 +417,7 @@ export default function PropertyDetailPage() {
       name: property.name,
       description: property.description,
       categoryId: property.categoryId,
+      tenantSubcategoryId: property.tenantSubcategoryId || "",
       city: property.city,
       address: property.address,
     });
@@ -526,18 +527,16 @@ export default function PropertyDetailPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               {property.name}
             </h1>
-            <Badge>{property.category?.name}</Badge>
+            <Badge>
+              {property.tenantSubcategory?.name || property.category?.name}
+            </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
             {property.address}, {property.city}
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={openEditDialog}
-        >
+        <Button variant="outline" className="gap-2" onClick={openEditDialog}>
           <Pencil className="h-4 w-4" />
           Edit Property
         </Button>
@@ -617,9 +616,7 @@ export default function PropertyDetailPage() {
                     )}
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-base">
-                          {room.name}
-                        </CardTitle>
+                        <CardTitle className="text-base">{room.name}</CardTitle>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
@@ -814,10 +811,7 @@ export default function PropertyDetailPage() {
                 : "Fill in the details for the new room."}
             </DialogDescription>
           </DialogHeader>
-          <form
-            onSubmit={handleSubmitRoom(onRoomSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={handleSubmitRoom(onRoomSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="room-name">Room Name</Label>
               <Input
@@ -910,7 +904,7 @@ export default function PropertyDetailPage() {
                 {activeExistingRoomImages.map((img) => (
                   <div
                     key={img.id}
-                    className="relative group aspect-[4/3] rounded-md border overflow-hidden bg-muted"
+                    className="relative group aspect-4/3 rounded-md border overflow-hidden bg-muted"
                   >
                     <img
                       src={img.imageUrl}
@@ -939,7 +933,7 @@ export default function PropertyDetailPage() {
                 {newRoomImages.map((img, index) => (
                   <div
                     key={`new-${index}`}
-                    className="relative group aspect-[4/3] rounded-md border-2 border-dashed border-primary/30 overflow-hidden bg-muted"
+                    className="relative group aspect-4/3 rounded-md border-2 border-dashed border-primary/30 overflow-hidden bg-muted"
                   >
                     <img
                       src={img.previewUrl}
@@ -970,7 +964,7 @@ export default function PropertyDetailPage() {
                 {totalRoomImageCount < MAX_ROOM_IMAGES && (
                   <button
                     type="button"
-                    className="aspect-[4/3] rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
+                    className="aspect-4/3 rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
                     onClick={() => roomFileInputRef.current?.click()}
                   >
                     <Plus className="h-5 w-5 text-muted-foreground" />
@@ -1053,10 +1047,7 @@ export default function PropertyDetailPage() {
       </Dialog>
 
       {/* ═══════════════════ DELETE ROOM DIALOG ═══════════════════ */}
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={() => setDeleteTarget(null)}
-      >
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Room</DialogTitle>
@@ -1103,9 +1094,7 @@ export default function PropertyDetailPage() {
               <Pencil className="h-5 w-5" />
               Edit Property
             </DialogTitle>
-            <DialogDescription>
-              Update your property details.
-            </DialogDescription>
+            <DialogDescription>Update your property details.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={handleSubmitProp(onEditPropSubmit)}
@@ -1127,17 +1116,17 @@ export default function PropertyDetailPage() {
               <Label htmlFor="edit-category">Category</Label>
               <Select
                 value={watchProp("categoryId")}
-                onValueChange={(val) =>
-                  setValueProp("categoryId", val, { shouldValidate: true })
-                }
-                key={watchProp("categoryId")}
+                onValueChange={(val) => {
+                  setValueProp("categoryId", val, { shouldValidate: true });
+                  setValueProp("tenantSubcategoryId", ""); // Reset subcategory when master changes
+                }}
               >
                 <input type="hidden" {...registerProp("categoryId")} />
                 <SelectTrigger id="edit-category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesToRender.map((cat: any) => (
+                  {masterCategories.map((cat: any) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>
@@ -1150,6 +1139,35 @@ export default function PropertyDetailPage() {
                 </p>
               )}
             </div>
+
+            {/* Optional Subcategory */}
+            {watchProp("categoryId") && filteredSubcategories.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-subcategory">Subcategory (Optional)</Label>
+                <Select
+                  value={watchProp("tenantSubcategoryId") || "none"}
+                  onValueChange={(val) =>
+                    setValueProp(
+                      "tenantSubcategoryId",
+                      val === "none" ? "" : val,
+                      { shouldValidate: true },
+                    )
+                  }
+                >
+                  <SelectTrigger id="edit-subcategory">
+                    <SelectValue placeholder="Select a subcategory (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {filteredSubcategories.map((cat: any) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-2">
@@ -1332,10 +1350,7 @@ export default function PropertyDetailPage() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={updatePropMutation.isPending}
-              >
+              <Button type="submit" disabled={updatePropMutation.isPending}>
                 {updatePropMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

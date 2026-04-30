@@ -63,6 +63,7 @@ import {
   deleteProperty,
   type TenantProperty,
 } from "~/lib/tenant-api";
+import { fetchCategories } from "~/lib/property.api";
 import { useAuthStore } from "~/modules/auth/auth.store";
 import { useDebounce } from "~/hooks/use-debounce";
 
@@ -74,6 +75,7 @@ const createPropertySchema = z.object({
     .string()
     .min(20, "Description must be at least 20 characters"),
   categoryId: z.string().min(1, "Category is required"),
+  tenantSubcategoryId: z.string().optional(),
   city: z.string().min(1, "City is required"),
   address: z.string().min(5, "Address must be at least 5 characters"),
 });
@@ -118,17 +120,31 @@ export default function DashboardPropertiesPage() {
       name: "",
       description: "",
       categoryId: "",
+      tenantSubcategoryId: "",
       city: "",
       address: "",
     },
   });
 
   // ─── Queries ──────────────────────────────────────────
-  const { data: categoriesData } = useQuery({
+  const { data: masterCategories = [] } = useQuery({
+    queryKey: ["master-categories"],
+    queryFn: fetchCategories,
+  });
+
+  const { data: tenantCategoriesData } = useQuery({
     queryKey: ["tenant-categories", user?.id],
     queryFn: () => fetchTenantCategories({ tenantId: user?.id }),
     enabled: !!user?.id,
   });
+
+  const tenantCategories = tenantCategoriesData?.data ?? [];
+
+  // Filter subcategories based on selected master category in form
+  const selectedMasterId = watch("categoryId");
+  const filteredSubcategories = tenantCategories.filter(
+    (tc) => tc.categoryId === selectedMasterId
+  );
 
   const {
     data: propertiesData,
@@ -148,7 +164,6 @@ export default function DashboardPropertiesPage() {
 
   const properties = propertiesData?.data ?? [];
   const meta = propertiesData?.meta;
-  const categories = categoriesData?.data ?? [];
 
   // ─── Mutations ──────────────────────────────────────────
   const deleteMutation = useMutation({
@@ -171,6 +186,9 @@ export default function DashboardPropertiesPage() {
       formData.append("name", data.name);
       formData.append("description", data.description);
       formData.append("categoryId", data.categoryId);
+      if (data.tenantSubcategoryId) {
+        formData.append("tenantSubcategoryId", data.tenantSubcategoryId);
+      }
       formData.append("city", data.city);
       formData.append("address", data.address);
 
@@ -235,6 +253,7 @@ export default function DashboardPropertiesPage() {
       name: "",
       description: "",
       categoryId: "",
+      tenantSubcategoryId: "",
       city: "",
       address: "",
     });
@@ -296,7 +315,7 @@ export default function DashboardPropertiesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
+            {masterCategories.map((cat) => (
               <SelectItem key={cat.id} value={cat.id}>
                 {cat.name}
               </SelectItem>
@@ -456,33 +475,21 @@ export default function DashboardPropertiesPage() {
               <Label htmlFor="create-category">Category</Label>
               <Select
                 value={watch("categoryId")}
-                onValueChange={(val) =>
-                  setValue("categoryId", val, { shouldValidate: true })
-                }
+                onValueChange={(val) => {
+                  setValue("categoryId", val, { shouldValidate: true });
+                  setValue("tenantSubcategoryId", ""); // Reset subcategory when master changes
+                }}
               >
                 <input type="hidden" {...register("categoryId")} />
                 <SelectTrigger id="create-category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      No categories yet. Create one in{" "}
-                      <a
-                        href="/tenant/dashboard/categories"
-                        className="text-primary underline"
-                      >
-                        Categories
-                      </a>
-                      .
-                    </div>
-                  ) : (
-                    categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))
-                  )}
+                  {masterCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.categoryId && (
@@ -491,6 +498,31 @@ export default function DashboardPropertiesPage() {
                 </p>
               )}
             </div>
+
+            {/* Optional Subcategory */}
+            {watch("categoryId") && filteredSubcategories.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="create-subcategory">Subcategory (Optional)</Label>
+                <Select
+                  value={watch("tenantSubcategoryId")}
+                  onValueChange={(val) =>
+                    setValue("tenantSubcategoryId", val === "none" ? "" : val, { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger id="create-subcategory">
+                    <SelectValue placeholder="Select a subcategory (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {filteredSubcategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-2">
@@ -686,7 +718,7 @@ function PropertyCard({
             </div>
           )}
           <Badge className="absolute top-3 left-3 bg-background/90 text-foreground backdrop-blur-sm text-xs">
-            {property.category?.name || "Uncategorized"}
+            {property.tenantSubcategory?.name || property.category?.name || "Uncategorized"}
           </Badge>
           {/* Actions dropdown */}
           <DropdownMenu>
