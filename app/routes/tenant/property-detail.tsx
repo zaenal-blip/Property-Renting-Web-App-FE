@@ -20,7 +20,11 @@ import {
   X,
   ImageIcon,
   Info,
+  Star,
+  MessageSquare,
+  Send,
 } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
@@ -64,6 +68,7 @@ import {
   type Room,
 } from "~/lib/tenant-api";
 import { useAuthStore } from "~/modules/auth/auth.store";
+import { axiosInstance } from "~/lib/axios";
 
 // ─── Schemas ──────────────────────────────────────────
 const roomSchema = z.object({
@@ -125,6 +130,14 @@ export default function PropertyDetailPage() {
   );
   const [newPropImages, setNewPropImages] = useState<NewImage[]>([]);
   const [removedPropImageIds, setRemovedPropImageIds] = useState<string[]>([]);
+  
+  // ─── Review State ───────────────────────────────────
+  const [replyModal, setReplyModal] = useState<{
+    reviewId: string;
+    userName: string;
+    comment: string;
+  } | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   // ─── Queries ──────────────────────────────────────────
   const { data: property, isLoading } = useQuery({
@@ -144,6 +157,19 @@ export default function PropertyDetailPage() {
     queryFn: () => fetchTenantCategories({ tenantId: user?.id }),
     enabled: !!user?.id,
   });
+
+  const { data: reviewsData, isLoading: isLoadingReviews } = useQuery({
+    queryKey: ["property-reviews", id],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/reviews", {
+        params: { propertyId: id, take: 50 },
+      });
+      return res.data;
+    },
+    enabled: !!id,
+  });
+
+  const reviews = reviewsData?.data || [];
 
   const rooms = roomsData?.data ?? [];
   const categories = categoriesData?.data ?? [];
@@ -262,6 +288,27 @@ export default function PropertyDetailPage() {
     onError: (error: any) =>
       toast.error(error.response?.data?.message || "Failed to delete room"),
   });
+
+  // ─── Review Mutations ───────────────────────────────────
+  const replyMutation = useMutation({
+    mutationFn: async ({ reviewId, reply }: { reviewId: string; reply: string }) => {
+      return axiosInstance.post(`/reviews/${reviewId}/reply`, { reply });
+    },
+    onSuccess: () => {
+      toast.success("Reply submitted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["property-reviews", id] });
+      setReplyModal(null);
+      setReplyText("");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to submit reply");
+    },
+  });
+
+  const handleReply = () => {
+    if (!replyModal || !replyText.trim()) return;
+    replyMutation.mutate({ reviewId: replyModal.reviewId, reply: replyText });
+  };
 
   // ─── Edit Property Mutation ──────────────────────────────
   const updatePropMutation = useMutation({
@@ -648,6 +695,98 @@ export default function PropertyDetailPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* Reviews Section */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Guest Reviews
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Read and respond to reviews from guests who stayed at this property.
+          </p>
+        </div>
+
+        {isLoadingReviews ? (
+           <div className="space-y-4">
+             {[1,2].map(i => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+           </div>
+        ) : reviews.length === 0 ? (
+          <Card className="border-dashed py-12">
+            <CardContent className="flex flex-col items-center justify-center text-center">
+               <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                 <MessageSquare className="h-6 w-6 text-muted-foreground" />
+               </div>
+               <p className="text-sm font-medium">No reviews yet for this property</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {reviews.map((review: any) => (
+              <Card key={review.id} className="overflow-hidden border-border/50">
+                <CardContent className="p-6">
+                  <div className="flex flex-col sm:flex-row justify-between gap-4">
+                    <div className="flex gap-4">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                         {review.user?.profilePicture ? (
+                           <img src={review.user.profilePicture} alt="" className="h-10 w-10 rounded-full object-cover" />
+                         ) : <Users className="h-5 w-5 text-primary" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm">{review.user?.name || "Guest"}</span>
+                          <div className="flex">
+                            {[1,2,3,4,5].map(star => (
+                              <Star key={star} className={`h-3 w-3 ${review.rating >= star ? "fill-warning text-warning" : "text-muted-foreground/30"}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{format(new Date(review.createdAt), "dd MMM yyyy")}</p>
+                        <p className="mt-3 text-sm italic">"{review.comment}"</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                       {!review.reply ? (
+                         <Button 
+                           variant="outline" 
+                           size="sm" 
+                           className="h-8 gap-1.5"
+                           onClick={() => setReplyModal({
+                             reviewId: review.id,
+                             userName: review.user?.name || "Guest",
+                             comment: review.comment
+                           })}
+                         >
+                           <MessageSquare className="h-3.5 w-3.5" />
+                           Reply
+                         </Button>
+                       ) : (
+                         <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-[10px]">
+                            Replied
+                         </Badge>
+                       )}
+                    </div>
+                  </div>
+
+                  {review.reply && (
+                    <div className="mt-4 ml-14 p-4 bg-muted/30 rounded-xl border border-border">
+                       <div className="flex items-center gap-2 mb-2">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-[11px] font-bold text-primary uppercase tracking-tight">Your Reply</span>
+                       </div>
+                       <p className="text-sm">"{review.reply.reply}"</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
@@ -1204,6 +1343,39 @@ export default function PropertyDetailPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reply Modal */}
+      <Dialog open={!!replyModal} onOpenChange={(open) => !open && setReplyModal(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reply to {replyModal?.userName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-xl border text-sm italic">
+              "{replyModal?.comment}"
+            </div>
+            <Textarea
+              placeholder="Write your reply..."
+              className="min-h-[100px]"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReplyModal(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReply}
+              disabled={!replyText.trim() || replyMutation.isPending}
+              className="gap-2"
+            >
+              <Send className="h-4 w-4" />
+              {replyMutation.isPending ? "Sending..." : "Send Reply"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

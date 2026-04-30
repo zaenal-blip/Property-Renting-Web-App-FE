@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import { useDebounce } from "~/hooks/use-debounce";
 
 import {
@@ -304,8 +305,10 @@ export default function DashboardOrdersPage() {
                             </DropdownMenuItem>
                           )}
                           
-                          <DropdownMenuItem onClick={() => toast.info("Full detail view coming soon")}>
-                            <Eye className="h-4 w-4 mr-2" /> Full Details
+                          <DropdownMenuItem asChild>
+                            <Link to={`/tenant/dashboard/orders/${res.id}`} className="flex items-center w-full">
+                              <Eye className="h-4 w-4 mr-2" /> Full Details
+                            </Link>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -323,6 +326,7 @@ export default function DashboardOrdersPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Payment Verification</DialogTitle>
+            <DialogDescription>Review the guest's payment proof image below.</DialogDescription>
           </DialogHeader>
           <div className="bg-muted rounded-xl overflow-hidden aspect-[3/4] flex items-center justify-center border">
             {selectedProof && (

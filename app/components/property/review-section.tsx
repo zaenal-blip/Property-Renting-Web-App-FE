@@ -6,6 +6,7 @@ import { format } from "date-fns";
 
 interface ReviewSectionProps {
   propertyId: string;
+  propertyTenantId?: string;
   rating: number;
   reviewCount: number;
 }
@@ -37,11 +38,51 @@ function StarBar({
   );
 }
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useAuthStore } from "~/modules/auth/auth.store";
+import { Button } from "~/components/ui/button";
+import { Textarea } from "~/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "~/components/ui/dialog";
+import { toast } from "sonner";
+import { MessageSquare, Send } from "lucide-react";
+
 export function ReviewSection({
   propertyId,
+  propertyTenantId,
   rating,
   reviewCount,
 }: ReviewSectionProps) {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.id && propertyTenantId && user.id === propertyTenantId;
+
+  const [replyModal, setReplyModal] = useState<{
+    reviewId: string;
+    userName: string;
+    comment: string;
+  } | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  const replyMutation = useMutation({
+    mutationFn: async ({ reviewId, reply }: { reviewId: string; reply: string }) => {
+      return axiosInstance.post(`/reviews/${reviewId}/reply`, { reply });
+    },
+    onSuccess: () => {
+      toast.success("Reply submitted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["property-reviews", propertyId] });
+      setReplyModal(null);
+      setReplyText("");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to submit reply");
+    },
+  });
+
+  const handleReply = () => {
+    if (!replyModal || !replyText.trim()) return;
+    replyMutation.mutate({ reviewId: replyModal.reviewId, reply: replyText });
+  };
   const { data, isLoading } = useQuery({
     queryKey: ["property-reviews", propertyId],
     queryFn: async () => {
@@ -145,6 +186,24 @@ export function ReviewSection({
               {review.comment}
             </p>
 
+            {isOwner && !review.reply && (
+               <div className="mt-3 flex justify-end">
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="h-8 gap-1.5"
+                   onClick={() => setReplyModal({
+                     reviewId: review.id,
+                     userName: review.user?.name || "Guest",
+                     comment: review.comment
+                   })}
+                 >
+                   <MessageSquare className="h-3.5 w-3.5" />
+                   Reply as Host
+                 </Button>
+               </div>
+            )}
+
             {/* Tenant Reply */}
             {review.reply && (
               <div className="mt-3 p-3 bg-background rounded-lg border border-border">
@@ -158,6 +217,39 @@ export function ReviewSection({
           </div>
         ))}
       </div>
+
+      {/* Reply Modal */}
+      <Dialog open={!!replyModal} onOpenChange={(open) => !open && setReplyModal(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reply to {replyModal?.userName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-xl border text-sm italic">
+              "{replyModal?.comment}"
+            </div>
+            <Textarea
+              placeholder="Write your reply as a host..."
+              className="min-h-[100px]"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReplyModal(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReply}
+              disabled={!replyText.trim() || replyMutation.isPending}
+              className="gap-2"
+            >
+              <Send className="h-4 w-4" />
+              {replyMutation.isPending ? "Sending..." : "Send Reply"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

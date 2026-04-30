@@ -50,6 +50,7 @@ export interface Room {
   name: string;
   description: string;
   capacity: number;
+  qty: number;
   basePrice: string;
   createdAt: string;
   images: { id: string; roomId: string; imageUrl: string }[];

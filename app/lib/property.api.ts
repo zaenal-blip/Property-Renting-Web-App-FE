@@ -143,7 +143,10 @@ export interface PropertyDetail {
   category: { id: string; name: string; createdAt: string };
   images: { id: string; propertyId: string; imageUrl: string }[];
   rooms: PropertyDetailRoom[];
-  tenant: { name: string; profilePicture: string | null };
+  tenant: { id: string; name: string; profilePicture: string | null };
+  averageRating?: number;
+  reviewCount?: number;
+  _count?: { reviews: number; rooms: number };
 }
 
 export async function fetchPropertyBySlug(

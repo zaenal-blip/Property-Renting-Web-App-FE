@@ -73,6 +73,7 @@ export default [
       "routes/tenant/categories.tsx",
     ),
     route("/tenant/dashboard/orders", "routes/tenant/dashboard-orders.tsx"),
+    route("/tenant/dashboard/orders/:id", "routes/user/order-detail.tsx", { id: "tenant-order-detail" }),
     route("/tenant/dashboard/reviews", "routes/tenant/reviews.tsx"),
     route(
       "/tenant/dashboard/settings",

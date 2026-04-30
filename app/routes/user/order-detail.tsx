@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, Link, useNavigate, useLocation } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -17,11 +17,12 @@ import {
   Ban,
   Timer,
   Star,
+  FileImage,
 } from "lucide-react";
 import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { ReviewForm } from "~/components/property/review-form";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -94,6 +95,7 @@ function useCountdown(createdAt: string | undefined, isActive: boolean) {
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const {
@@ -193,9 +195,9 @@ export default function OrderDetailPage() {
     <div className="container mx-auto px-4 py-24 md:py-28">
       <div className="mx-auto max-w-4xl">
         <Button variant="ghost" size="sm" className="mb-6 gap-1" asChild>
-          <Link to="/user/bookings">
+          <Link to={location.pathname.startsWith("/tenant") ? "/tenant/dashboard/orders" : "/user/bookings"}>
             <ArrowLeft className="h-4 w-4" />
-            Back to Bookings
+            Back to {location.pathname.startsWith("/tenant") ? "Orders" : "Bookings"}
           </Link>
         </Button>
 
@@ -433,13 +435,24 @@ export default function OrderDetailPage() {
                               const file = e.target.files?.[0];
                               if (!file) return;
 
-                              try {
+                               try {
+                                const formData = new FormData();
+                                formData.append("file", file);
+
                                 toast.loading("Uploading proof...");
+                                
+                                // 1. Upload to Cloudinary via our backend
+                                const uploadRes = await axiosInstance.post("/media/upload", formData, {
+                                  headers: { "Content-Type": "multipart/form-data" }
+                                });
+                                
+                                const proofUrl = uploadRes.data.url;
+
+                                // 2. Update reservation with the real URL
                                 await axiosInstance.patch(
                                   `/reservations/${reservation.id}/payment-proof`,
                                   {
-                                    paymentProof:
-                                      "https://via.placeholder.com/400x600?text=Payment+Proof",
+                                    paymentProof: proofUrl,
                                   },
                                 );
                                 toast.dismiss();
@@ -489,6 +502,34 @@ export default function OrderDetailPage() {
                 reservationId={reservation.id} 
                 onSuccess={() => queryClient.invalidateQueries({ queryKey: ["reservation", id] })}
               />
+            )}
+            
+            {/* ── Payment Proof Display (if exists) ── */}
+            {reservation.payment?.paymentProof && (
+              <Card className="overflow-hidden border-border shadow-sm">
+                <CardHeader className="pb-3 flex flex-row items-center gap-3">
+                  <div className="rounded-full bg-primary/10 p-2 text-primary">
+                    <FileImage className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Payment Proof</CardTitle>
+                    <CardDescription>The image uploaded for this transaction.</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                   <div className="bg-muted aspect-[3/4] sm:aspect-video w-full flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={reservation.payment.paymentProof} 
+                        alt="Payment Proof" 
+                        className="h-full w-full object-contain cursor-zoom-in hover:scale-[1.02] transition-transform"
+                        onClick={() => window.open(reservation.payment.paymentProof, '_blank')}
+                      />
+                   </div>
+                   <div className="p-4 bg-muted/30 text-center">
+                      <p className="text-xs text-muted-foreground">Click image to view full size</p>
+                   </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* ── Display Existing Review ── */}
