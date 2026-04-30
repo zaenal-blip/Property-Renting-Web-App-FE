@@ -8,7 +8,7 @@ import { useAuthStore } from "~/modules/auth/auth.store";
 export const clientLoader = () => {
   const user = useAuthStore.getState().user;
   if (!user) return redirect("/login");
-  if (user.role === "TENANT") return redirect("/tenant/settings");
+  if (user.role === "TENANT") return redirect("/tenant/dashboard/settings");
   return { user };
 };
 
