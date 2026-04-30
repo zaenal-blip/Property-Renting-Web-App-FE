@@ -181,10 +181,7 @@ export async function createRoom(payload: FormData) {
   return data;
 }
 
-export async function updateRoom(
-  id: string,
-  payload: FormData,
-) {
+export async function updateRoom(id: string, payload: FormData) {
   const { data } = await axiosInstance.patch(`/rooms/${id}`, payload, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -214,10 +211,7 @@ export async function setAvailability(
   roomId: string,
   payload: { roomId: string; date: string; isAvailable: boolean },
 ) {
-  const { data } = await axiosInstance.post(
-    `/availability/${roomId}`,
-    payload,
-  );
+  const { data } = await axiosInstance.post(`/availability/${roomId}`, payload);
   return data;
 }
 
@@ -276,8 +270,6 @@ export async function updatePeakRate(
 }
 
 export async function deletePeakRate(id: string) {
-  const { data } = await axiosInstance.delete(
-    `/availability/peak-rates/${id}`,
-  );
+  const { data } = await axiosInstance.delete(`/availability/peak-rates/${id}`);
   return data;
 }
