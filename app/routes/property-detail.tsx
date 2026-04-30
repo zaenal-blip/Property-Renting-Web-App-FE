@@ -167,18 +167,18 @@ const PropertyDetailPage = () => {
               {property.tenant.profilePicture ? (
                 <img
                   src={property.tenant.profilePicture}
-                  alt={property.tenant.name}
+                  alt={property.tenant.businessName || property.tenant.name}
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                  {property.tenant.name.charAt(0)}
+                  {(property.tenant.businessName || property.tenant.name).charAt(0)}
                 </div>
               )}
               <div>
                 <p className="text-sm text-muted-foreground">Hosted by</p>
                 <p className="text-sm font-medium text-foreground">
-                  {property.tenant.name}
+                  {property.tenant.businessName || property.tenant.name}
                 </p>
               </div>
             </div>

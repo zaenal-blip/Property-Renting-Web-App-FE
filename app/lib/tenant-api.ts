@@ -13,6 +13,8 @@ export interface TenantProperty {
   createdAt: string;
   updatedAt: string;
   category: { id: string; name: string };
+  tenantSubcategoryId?: string | null;
+  tenantSubcategory?: { id: string; name: string } | null;
   images: { id: string; propertyId: string; imageUrl: string }[];
   _count: { rooms: number; reviews: number; reservations: number };
 }
@@ -33,8 +35,10 @@ export interface TenantPropertiesParams {
 
 export interface Category {
   id: string;
-  tenantId: string;
   name: string;
+  tenantId: string;
+  categoryId: string;
+  category?: { id: string; name: string };
   createdAt: string;
   _count: { properties: number };
 }
@@ -100,14 +104,14 @@ export async function fetchTenantProperties(
   return data;
 }
 
-export async function createProperty(payload: FormData) {
+export async function createProperty(payload: FormData): Promise<TenantProperty> {
   const { data } = await axiosInstance.post("/properties", payload, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
 }
 
-export async function updateProperty(id: string, payload: FormData) {
+export async function updateProperty(id: string, payload: FormData): Promise<TenantProperty> {
   const { data } = await axiosInstance.patch(`/properties/${id}`, payload, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -119,8 +123,8 @@ export async function deleteProperty(id: string) {
   return data;
 }
 
-export async function fetchPropertyById(id: string) {
-  const { data } = await axiosInstance.get(`/properties/id/${id}`);
+export async function fetchPropertyById(id: string): Promise<TenantProperty> {
+  const { data } = await axiosInstance.get<TenantProperty>(`/properties/id/${id}`);
   return data;
 }
 
@@ -137,12 +141,12 @@ export async function fetchTenantCategories(params?: {
   return data;
 }
 
-export async function createCategory(payload: { name: string }) {
+export async function createCategory(payload: { name: string; categoryId: string }) {
   const { data } = await axiosInstance.post("/categories", payload);
   return data;
 }
 
-export async function updateCategory(id: string, payload: { name: string }) {
+export async function updateCategory(id: string, payload: { name?: string; categoryId?: string }) {
   const { data } = await axiosInstance.patch(`/categories/${id}`, payload);
   return data;
 }

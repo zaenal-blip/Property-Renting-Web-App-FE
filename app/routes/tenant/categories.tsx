@@ -37,6 +37,13 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 import {
   fetchTenantCategories,
@@ -45,6 +52,7 @@ import {
   deleteCategory,
   type Category,
 } from "~/lib/tenant-api";
+import { fetchCategories } from "~/lib/property.api";
 import { useAuthStore } from "~/modules/auth/auth.store";
 
 export default function CategoriesPage() {
@@ -58,6 +66,13 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [name, setName] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+
+  // Fetch master categories
+  const { data: masterCategories = [] } = useQuery({
+    queryKey: ["master-categories"],
+    queryFn: fetchCategories,
+  });
 
   // Fetch categories
   const {
@@ -89,7 +104,7 @@ export default function CategoriesPage() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: () => createCategory({ name }),
+    mutationFn: () => createCategory({ name, categoryId }),
     onSuccess: () => {
       toast.success("Category created successfully");
       queryClient.invalidateQueries({ queryKey: ["tenant-categories"] });
@@ -104,7 +119,7 @@ export default function CategoriesPage() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: () => updateCategory(editingCategory!.id, { name }),
+    mutationFn: () => updateCategory(editingCategory!.id, { name, categoryId }),
     onSuccess: () => {
       toast.success("Category updated successfully");
       queryClient.invalidateQueries({ queryKey: ["tenant-categories"] });
@@ -135,18 +150,24 @@ export default function CategoriesPage() {
   const openNew = () => {
     setEditingCategory(null);
     setName("");
+    setCategoryId("");
     setShowDialog(true);
   };
 
   const openEdit = (category: Category) => {
     setEditingCategory(category);
     setName(category.name);
+    setCategoryId(category.categoryId || "");
     setShowDialog(true);
   };
 
   const handleSave = () => {
     if (!name.trim()) {
       toast.error("Category name is required");
+      return;
+    }
+    if (!categoryId) {
+      toast.error("Master category is required");
       return;
     }
     if (isDuplicate) {
@@ -259,7 +280,12 @@ export default function CategoriesPage() {
                           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                             <FolderOpen className="h-4 w-4 text-primary" />
                           </div>
-                          <span className="font-medium">{cat.name}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{cat.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Linked to: {cat.category?.name || "Unknown"}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -350,6 +376,25 @@ export default function CategoriesPage() {
                 </p>
               )}
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="master-category">Master Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger id="master-category">
+                  <SelectValue placeholder="Select master category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {masterCategories.map((master) => (
+                    <SelectItem key={master.id} value={master.id}>
+                      {master.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Link this category to a global master category for search visibility.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -365,7 +410,7 @@ export default function CategoriesPage() {
             <Button
               onClick={handleSave}
               disabled={
-                createMutation.isPending || updateMutation.isPending || isDuplicate || !name.trim()
+                createMutation.isPending || updateMutation.isPending || isDuplicate || !name.trim() || !categoryId
               }
             >
               {(createMutation.isPending || updateMutation.isPending) && (
