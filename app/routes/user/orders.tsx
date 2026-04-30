@@ -1,6 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, redirect } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "~/modules/auth/auth.store";
+
+export const clientLoader = () => {
+  const user = useAuthStore.getState().user;
+  if (!user) return redirect("/login");
+  return { user };
+};
 import {
   ShoppingBag,
   Calendar,

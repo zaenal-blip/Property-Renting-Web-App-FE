@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, Link, useNavigate, redirect } from "react-router";
+import { useAuthStore } from "~/modules/auth/auth.store";
+
+export const clientLoader = () => {
+  const user = useAuthStore.getState().user;
+  if (!user) return redirect("/login");
+  return { user };
+};
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {

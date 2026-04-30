@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Outlet, Link, useLocation, useNavigate, redirect } from "react-router";
 import {
   LayoutDashboard,
   Building2,
@@ -23,6 +23,13 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet";
 import { useAuthStore } from "~/modules/auth/auth.store";
+
+export const clientLoader = () => {
+  const user = useAuthStore.getState().user;
+  if (!user) return redirect("/login");
+  if (user.role !== "TENANT") return redirect("/");
+  return { user };
+};
 
 const sidebarNav = [
   {

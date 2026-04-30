@@ -5,7 +5,14 @@ import { Card } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { PropertyCard, PropertyCardProperty } from "~/components/shared/property-card";
 import { getSavedProperties } from "~/lib/user.api";
-import { useNavigate } from "react-router";
+import { useNavigate, redirect } from "react-router";
+import { useAuthStore } from "~/modules/auth/auth.store";
+
+export const clientLoader = () => {
+  const user = useAuthStore.getState().user;
+  if (!user) return redirect("/login");
+  return { user };
+};
 
 export default function SavedPropertiesPage() {
   const navigate = useNavigate();
